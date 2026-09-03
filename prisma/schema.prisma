@@ -1,0 +1,346 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum EventStatus {
+  DARFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  COMPLETED
+  REFUNDED
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  EXPIRED
+}
+
+enum TicketTypeStatus {
+  ACTIVE
+  INACTIVE
+  SOLD_OUT
+  EXPIRED
+}
+
+enum PaymentMethod {
+  bcel_one
+  ldb_mobile
+  onepay
+  bank_transfer
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum BannerType {
+  TOP_BANNER
+  CATEGORY_FEATURED
+  POPUP
+  SEARCH_BOOST
+}
+
+
+enum NotificationType {
+  PAYMENT
+  EVENT_REMINDER
+  SYSTEM
+  PROMOTION
+}
+
+model User {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  name   String
+  email      String   @unique
+  phone      String
+  password   String
+  profileUrl String?
+  role       UserRole @default(USER)
+  isActive   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders         Order[]
+  notifications  Notification[]
+  orderHistories OrderHistory[]
+}
+
+model Venue {
+  id      String @id @default(uuid()) @db.VarChar(36)
+  name    String
+  address String
+  mapUrl  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+}
+
+model Organizer {
+  id          String  @id @default(uuid()) @db.VarChar(36)
+  name        String
+  email       String  @unique
+  phone       String
+  description String?
+  logoUrl     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+  eventBanner EventBanner []
+}
+
+model Category {
+  id      String  @id @default(uuid()) @db.VarChar(36)
+  name    String  @unique
+  iconUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+}
+
+model Event {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  title       String
+  description String
+  coverImgUrl String?
+  startAt     DateTime
+  endAt       DateTime
+  isFree      Boolean     @default(true)
+  satus       EventStatus @default(DARFT)
+
+  organizerId String
+  venueId     String
+  categoryId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+  venue     Venue     @relation(fields: [venueId], references: [id])
+  category  Category  @relation(fields: [categoryId], references: [id])
+
+  ticketTypes  TicketType[]
+  orders       Order[]
+  banners      EventBanner[]
+  orderHistory OrderHistory[]
+  notification Notification[]
+}
+
+model TicketType {
+  id           String           @id @default(uuid()) @db.VarChar(36)
+  name         String
+  description  String?
+  price        Int
+  quantity     Int
+  saleQuantity Int              @default(0)
+  saleStart    DateTime?
+  saleEnd      DateTime?
+  status       TicketTypeStatus @default(ACTIVE)
+
+  eventId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event        Event          @relation(fields: [eventId], references: [id])
+  orderItems   OrderItem[]
+  orderHistory OrderHistory[]
+}
+
+model Order {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  userId   String
+  eventId  String
+  couponId String?
+
+  subtotalAmount      Int
+  discountTotalAmount Int         @default(0)
+  totalAmount         Int
+  status              OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  event  Event   @relation(fields: [eventId], references: [id])
+  coupon Coupon? @relation(fields: [couponId], references: [id])
+
+  orderItems   OrderItem[]
+  tickets      Tickets[]
+  payments     Payment[]
+  orderHistory OrderHistory[]
+}
+
+model OrderItem {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  orderId  String
+  ticketId String
+
+  quantity  Int
+  unitPrice Int
+  subtotal  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order      Order      @relation(fields: [orderId], references: [id])
+  ticketType TicketType @relation(fields: [ticketId], references: [id])
+}
+
+model Tickets {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  orderId    String
+  ticketCode String @unique
+  qrCode     String @unique
+
+  status TicketStatus @default(VALID)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model Payment {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  orderId        String
+  amount         Int
+  transactionRef String?
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  paidAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model Coupon {
+  id            String       @id @default(uuid()) @db.VarChar(36)
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Decimal
+  validFrom     DateTime
+  validTo       DateTime
+  isUsed        Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model OrderHistory {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  userId       String
+  orderId      String
+  eventId      String
+  ticketTypeId String
+
+  eventTitle String
+  eventDate  DateTime
+
+  ticketTypeName String
+  ticketQuantity Int
+
+  unitPrice      Int
+  totalPaid      Int
+  discountAmount Decimal?
+
+  couponCode String?
+
+  orderStatus OrderStatus
+
+  paidAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  event      Event      @relation(fields: [eventId], references: [id])
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  order      Order      @relation(fields: [orderId], references: [id])
+}
+
+model EventBanner {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  eventId     String
+  organizerId String
+
+  coverImgUrl   String
+  bannerType    BannerType
+  targetUrl     String
+  startDate     DateTime
+  endDate       DateTime
+
+  startAt DateTime
+  endAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id])
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  userId  String
+  eventId String
+
+  title     String
+  message   String
+  notifType NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+}
