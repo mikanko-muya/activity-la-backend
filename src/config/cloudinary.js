@@ -7,6 +7,7 @@ cloudinary.config({
     api_secret: CLOUDINARY_API_SECRET
 })
 
+// @ts-ignore
 const UploadImageToCloud = async (files, type, oldImage) => {
   try {
     if (oldImage) {
