@@ -9,7 +9,7 @@ export const categoryRepository = {
     findMany: ({ page, limit, search, sortBy, sortOrder }) => {
         const where = { ...(search && { name: { contains: search } }) };
 
-        const [data, total] = await Promise.$transaction([
+        const [data, total] = await prisma.$transaction([
             prisma.category.findMany({
                 where,
                 skip: (page - 1) * limit,

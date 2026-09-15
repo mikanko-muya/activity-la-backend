@@ -61,9 +61,6 @@ export default class EventControllers {
   static async searchEvent(req, res){
     try {
       const {search} = req.query
-
-      const 
-      
     } catch (error) {
       
     }
