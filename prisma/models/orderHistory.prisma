@@ -1,0 +1,32 @@
+model OrderHistory {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  userId       String
+  orderId      String
+  eventId      String
+  ticketTypeId String
+
+  eventTitle String
+  eventDate  DateTime
+
+  ticketTypeName String
+  ticketQuantity Int
+
+  unitPrice      Int
+  totalPaid      Int
+  discountAmount Decimal?
+
+  couponCode String?
+
+  orderStatus OrderStatus
+
+  paidAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  event      Event      @relation(fields: [eventId], references: [id])
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  order      Order      @relation(fields: [orderId], references: [id])
+}

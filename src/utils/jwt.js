@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import {JWT_SECRET, JWT_REFRESH_SECRET} from '../config/globalkey.js';
 
 export const generateAccessToken = (payload) => {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '2h' });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '30mn' });
 }
 
 export const generateRefreshToken = (payload) => {

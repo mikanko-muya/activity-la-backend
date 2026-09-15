@@ -1,7 +1,7 @@
-import { SendError, SendSuccess } from "../utils/response.js";
-import { prisma } from "../config/prisma.js";
-import { validateData } from "../services/validate.js";
-import UploadImageToCloud from "../config/cloudinary.js";
+import { SendError, SendSuccess } from "../../utils/response.js";
+import { prisma } from "../../config/prisma.config.js";
+import { validateData } from "../../services/validate.js";
+import UploadImageToCloud from "../../config/cloudinary.js";
 export default class OrganizerControllers {
     static async getAllOrganizers(req, res) {
         try {

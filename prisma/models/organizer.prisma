@@ -1,0 +1,15 @@
+model Organizer {
+  id           String  @id @default(uuid()) @db.VarChar(36)
+  name         String
+  email        String  @unique
+  phone        String
+  description  String?
+  logoUrl      String?
+  logoPublicId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events      Event[]
+  eventBanner EventBanner[]
+}

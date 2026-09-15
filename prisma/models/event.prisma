@@ -1,0 +1,27 @@
+model Event {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  title       String
+  description String
+  coverImgUrl String?
+  startAt     DateTime
+  endAt       DateTime
+  isFree      Boolean     @default(true)
+  satus       EventStatus @default(DRAFT)
+
+  organizerId String
+  venueId     String
+  categoryId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+  venue     Venue     @relation(fields: [venueId], references: [id])
+  category  Category  @relation(fields: [categoryId], references: [id])
+
+  ticketTypes  TicketType[]
+  orders       Order[]
+  banners      EventBanner[]
+  orderHistory OrderHistory[]
+  notification Notification[]
+}

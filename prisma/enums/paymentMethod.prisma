@@ -1,0 +1,6 @@
+enum PaymentMethod {
+  bcel_one
+  ldb_mobile
+  onepay
+  bank_transfer
+}

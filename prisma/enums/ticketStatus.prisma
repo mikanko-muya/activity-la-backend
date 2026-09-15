@@ -1,0 +1,5 @@
+enum TicketStatus {
+  VALID
+  USED
+  EXPIRED
+}

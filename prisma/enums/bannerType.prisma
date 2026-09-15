@@ -1,0 +1,6 @@
+enum BannerType {
+  TOP_BANNER
+  CATEGORY_FEATURED
+  POPUP
+  SEARCH_BOOST
+}

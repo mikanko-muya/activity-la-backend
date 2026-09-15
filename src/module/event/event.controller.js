@@ -1,7 +1,7 @@
-import { validateData } from "../services/validate.js";
-import { prisma } from "../config/prisma.js";
-import { SendError, SendSuccess, SendCreate } from "../utils/response.js";
-import UploadImageToCloud from "../config/cloudinary.js";
+import { validateData } from "../../services/validate.js";
+import { prisma } from "../../config/prisma.config.js";
+import { SendError, SendSuccess, SendCreate } from "../../utils/response.js";
+import UploadImageToCloud from "../../config/cloudinary.js";
 
 export default class EventControllers {
   // @ts-ignore
@@ -38,14 +38,14 @@ export default class EventControllers {
     }
   }
 
-  static async getEvents(req, res) {
+  static async getEventsByCategory(req, res) {
     try {
-      const { search, categoryId } = req.query;
+      const categoryId  = req.params.categoryId;
+      const category = await prisma.category.findUnique({where: {id: categoryId}});
+
+      if (!category) return SendError(res, 404, 'Bad request', 'Category not found')
       const events = await prisma.event.findMany({
-        where: {
-          ...(categoryId && { categoryId }),
-          ...(search && { title: { contains: search } }),
-        },
+        where: { categoryId},
         include: {
           organizer: true,
           venue: true,
@@ -55,6 +55,17 @@ export default class EventControllers {
       return SendSuccess(res, "Events retrieved successfully", events);
     } catch (error) {
       return SendError(res, 500, "Internal server error", error);
+    }
+  }
+
+  static async searchEvent(req, res){
+    try {
+      const {search} = req.query
+
+      const 
+      
+    } catch (error) {
+      
     }
   }
 

@@ -1,8 +1,8 @@
-import { SendCreate, SendError, SendSuccess } from "../utils/response.js";
-import { validateData } from "../services/validate.js";
-import { prisma } from "../config/prisma.js";
-import { hashPassword, comparePassword } from "../utils/password.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
+import { SendCreate, SendError, SendSuccess } from "../../utils/response.js";
+import { validateData } from "../../services/validate.js";
+import { prisma } from "../../config/prisma.config.js";
+import { hashPassword, comparePassword } from "../../utils/password.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
 
 // @ts-ignore
 const safeUser = (user) => {

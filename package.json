@@ -24,7 +24,8 @@
     "multer": "^2.3.0",
     "nodemon": "^3.1.14",
     "prisma": "^7.10.0",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "zod": "^4.6.2"
   },
   "allowScripts": {
     "@prisma/engines@7.10.0": true

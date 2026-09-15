@@ -1,6 +1,6 @@
-import { prisma } from "../config/prisma.js";
-import { SendError, SendSuccess, SendCreate } from "../utils/response.js";
-import { validateData } from "../services/validate.js";
+import { prisma } from "../../config/prisma.config.js";
+import { SendError, SendSuccess, SendCreate } from "../../utils/response.js";
+import { validateData } from "../../services/validate.js";
 
 
 export default class TicketTypeControllers {
