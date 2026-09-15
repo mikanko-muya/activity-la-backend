@@ -5,4 +5,4 @@
 
 */
 -- AlterTable
-ALTER TABLE `tickettype` MODIFY `price` DECIMAL(10, 2) NOT NULL;
+ALTER TABLE `TicketType` MODIFY `price` DECIMAL(10, 2) NOT NULL;
