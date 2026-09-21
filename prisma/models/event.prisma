@@ -6,7 +6,7 @@ model Event {
   startAt     DateTime
   endAt       DateTime
   isFree      Boolean     @default(true)
-  satus       EventStatus @default(DRAFT)
+  eventStatus EventStatus @default(DRAFT)
 
   organizerId String
   venueId     String
