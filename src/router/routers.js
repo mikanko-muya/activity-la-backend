@@ -14,17 +14,21 @@ import {
     getUsersSchema,
     updateProfileSchema,
     updateUserSchema,
+    userIdSchema,
 } from "../module/user/user.schema.js";
 
 import * as EventControllers from "../module/event/event.controller.js";
 import {
+    categoryIdParamSchema,
     createEventSchema,
+    eventIdSchema,
     getEventsSchema,
     updateEventSchema,
 } from "../module/event/event.schema.js";
 
 import * as CategoryControllers from "../module/category/category.controller.js";
 import {
+    categoryIdSchema,
     createCategorySchema,
     getCategoriesSchema,
     updateCategorySchema,
@@ -61,23 +65,24 @@ router.patch(
 
 router.get('/users', authenticate, authorize('ADMIN'), validate(getUsersSchema, 'query'), UserControllers.getUsers);
 router.post('/users', authenticate, authorize('ADMIN'), validate(createUserSchema), UserControllers.createUser);
-router.get('/users/:id', authenticate, authorize('ADMIN'), UserControllers.getUserById);
+router.get('/users/:id', authenticate, authorize('ADMIN'), validate(userIdSchema, 'params'), UserControllers.getUserById);
 router.patch(
     '/users/:id',
     authenticate,
     authorize('ADMIN'),
+    validate(userIdSchema, 'params'),
     upload.single('profile'),
     validate(updateUserSchema),
     UserControllers.updateUser
 );
-router.delete('/users/:id', authenticate, authorize('ADMIN'), UserControllers.deleteAccount);
-router.get('/users/:id/order-history', authenticate, authorize('ADMIN'), UserControllers.getOrderHistory);
+router.delete('/users/:id', authenticate, authorize('ADMIN'), validate(userIdSchema, 'params'), UserControllers.deleteAccount);
+router.get('/users/:id/order-history', authenticate, authorize('ADMIN'), validate(userIdSchema, 'params'), UserControllers.getOrderHistory);
 
 /* -------------------------------- categories -------------------------------- */
 // Reads are public; writes are admin-only.
 
 router.get('/categories', validate(getCategoriesSchema, 'query'), CategoryControllers.getCategories);
-router.get('/categories/:id', CategoryControllers.getCategoryById);
+router.get('/categories/:id', validate(categoryIdSchema, 'params'), CategoryControllers.getCategoryById);
 router.post(
     '/categories',
     authenticate,
@@ -90,19 +95,20 @@ router.patch(
     '/categories/:id',
     authenticate,
     authorize('ADMIN'),
+    validate(categoryIdSchema, 'params'),
     upload.single('icon'),
     validate(updateCategorySchema),
     CategoryControllers.updateCategory
 );
-router.delete('/categories/:id', authenticate, authorize('ADMIN'), CategoryControllers.deleteCategory);
+router.delete('/categories/:id', authenticate, authorize('ADMIN'), validate(categoryIdSchema, 'params'), CategoryControllers.deleteCategory);
 
 /* ---------------------------------- events ---------------------------------- */
 // Ported from the version2.0 controller. Reads are public; writes are admin-only,
 // matching categories. ?search= replaces the old empty searchEvent handler.
 
 router.get('/events', validate(getEventsSchema, 'query'), EventControllers.getEvents);
-router.get('/events/category/:categoryId', validate(getEventsSchema, 'query'), EventControllers.getEventsByCategory);
-router.get('/events/:id', EventControllers.getEventById);
+router.get('/events/category/:categoryId', validate(categoryIdParamSchema, 'params'), validate(getEventsSchema, 'query'), EventControllers.getEventsByCategory);
+router.get('/events/:id', validate(eventIdSchema, 'params'), EventControllers.getEventById);
 router.post(
     '/events',
     authenticate,
@@ -115,12 +121,13 @@ router.patch(
     '/events/:id',
     authenticate,
     authorize('ADMIN'),
+    validate(eventIdSchema, 'params'),
     upload.single('cover'),
     validate(updateEventSchema),
     EventControllers.updateEvent
 );
-router.patch('/events/:id/publish', authenticate, authorize('ADMIN'), EventControllers.publishEvent);
-router.patch('/events/:id/cancel', authenticate, authorize('ADMIN'), EventControllers.cancelEvent);
-router.delete('/events/:id', authenticate, authorize('ADMIN'), EventControllers.deleteEvent);
+router.patch('/events/:id/publish', authenticate, authorize('ADMIN'), validate(eventIdSchema, 'params'), EventControllers.publishEvent);
+router.patch('/events/:id/cancel', authenticate, authorize('ADMIN'), validate(eventIdSchema, 'params'), EventControllers.cancelEvent);
+router.delete('/events/:id', authenticate, authorize('ADMIN'), validate(eventIdSchema, 'params'), EventControllers.deleteEvent);
 
 export default router;
