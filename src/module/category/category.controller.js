@@ -1,5 +1,6 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { sendSuccess } from "../../utils/response.js";
+import { categoryService } from "./category.service.js";
 
 export const getCategoryById = asyncHandler(async (req, res) => {
     const data = await categoryService.getCategoryById(req.params.id);
@@ -12,12 +13,12 @@ export const getCategories = asyncHandler(async (req, res) => {
 })
 
 export const createCategory = asyncHandler(async (req, res) => {
-    const data = await categoryService.createCategory(req.body);
+    const data = await categoryService.createCategory(req.body, req.file);
     return sendSuccess(res, { statusCode: 201, message: "Category created successfully", data });
 })
 
 export const updateCategory = asyncHandler(async (req, res) => {
-    const data = await categoryService.updateCategory(req.body);
+    const data = await categoryService.updateCategory(req.params.id, req.body, req.file);
     return sendSuccess(res, { statusCode: 200, message: "Category updated successfully", data });
 })
 

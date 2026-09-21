@@ -18,7 +18,7 @@ export const errorHandler = (err, _req, res, _next) => {
         }
         if (err.code === "P2003") {
             return sendError(res, {
-                statusCode: 400,
+                statusCode: 409,
                 message: `Invalid reference for field: ${err.meta?.field_name ?? "unknown"}`,
             });
         }

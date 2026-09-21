@@ -12,7 +12,7 @@ export const userRepository = {
     return prisma.user.findFirst({ where: { email } });
   },
 
-  findByEmail: (phone) => {
+  findByPhone: (phone) => {
     return prisma.user.findFirst({ where: { phone } });
   },
 

@@ -1,9 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import {
-  CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET,
-} from "../config/globalkey.js";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } from "../config/cloudinary.config.js";
 import { BadRequestError } from "./errors/index.js";
 
 cloudinary.config({

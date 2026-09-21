@@ -2,9 +2,9 @@ import { BadRequestError, ConflictError, NotFoundError } from "../../utils/error
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
-import { updateUser } from "./user.controller.js";
+import { createUser, updateUser } from "./user.controller.js";
 
-toSafeData = (data) => {
+const toSafeData = (data) => {
   const { password, profilePublicId, ...safeData } = data
   return safeData;
 }
@@ -13,7 +13,7 @@ export const userService = {
   async getUserById(id) {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
-    return toSafeUser(user);
+    return toSafeData(user);
   },
 
   async getUsers(query) {
@@ -29,40 +29,90 @@ export const userService = {
     };
   },
 
+  async createUser(input, file) {
+    const existingPhone = await authRepository.findByPhone(input.phone);
+    if (existingPhone) throw new ConflictError("Phone is already registered");
+
+    const hashedPassword = await hashPassword(input.password);
+
+    const dataToCreate = {
+      ...input,
+      password: hashedPassword,
+    }
+
+    let uploadImage = null;
+    if (file) {
+      uploadImage = await uploadImageBufferToCloudinary(file.buffer, "users");
+
+      dataToCreate.profileUrl = uploadImage.url;
+      dataToCreate.profilePublicId = uploadImage.publicId;
+    }
+
+    let user
+    try {
+      user = await userRepository.create(dataToCreate);
+    } catch (err) {
+      if (uploadImage?.publicId) {
+        try {
+          await deleteImageFromCloudinary(uploadImage.publicId);
+        } catch (err) {
+          console.error("Failed to rollback uploaded image: ", err.message);
+        }
+      }
+
+      throw err;
+    }
+
+    return toSafeData(user);
+  },
+
   async updateUser(id, input, file) {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
-    
+
     if ((!input || Object.keys(input).length === 0) && !file) {
       throw new BadRequestError("At least one Change is required to update")
     }
-    
+
     const dataToUpdate = { ...input };
 
-    if(input.phone){
-       const existingPhone = await userRepository.findByPhone(dataToUpdate.phone);
-        if (existingPhone && existingPhone.id !== id) throw new ConflictError("Phone is already registed");
+    if (input.phone && input.phone !== user.phone) {
+      const existingPhone = await userRepository.findByPhone(dataToUpdate.phone);
+      if (existingPhone) throw new ConflictError("Phone is already registed");
     }
 
-    if(input.password){
+    if (input.password) {
       dataToUpdate.password = await hashPassword(input.password)
     }
-   
 
+    let uploadImage = null
     if (file) {
-      const newImage = await uploadImageBufferToCloudinary(file.buffer, "users")
+      uploadImage = await uploadImageBufferToCloudinary(file.buffer, "users")
 
-      dataToUpdate.profileUrl = newImage.url;
-      dataToUpdate.profilePublicId = newImage.publicId;
+      dataToUpdate.profileUrl = uploadImage.url;
+      dataToUpdate.profilePublicId = uploadImage.publicId;
     }
 
-    const updatedUser = await userRepository.update(id, dataToUpdate)
+    let updatedUser
+    try {
+      updatedUser = await userRepository.update(id, dataToUpdate);
+    } catch (err) {
+      if (uploadImage?.publicId) {
+        try {
+          await deleteImageFromCloudinary(uploadImage.publicId)
+        } catch (err) {
+          console.error("Failed to rollback uploaded image: ", err.message);
+        }
+      }
+
+      throw err;
+    }
 
     if (file && user.profilePublicId) {
       try {
         await deleteImageFromCloudinary(user.profilePublicId);
-      } catch (error) {
-        console.error("Failed to delete old profile image:", error.message);
+      } catch (err) {
+        console.error("Failed to delete old profile image:", err.message);
       }
     }
     return toSafeData(updatedUser);
@@ -90,10 +140,10 @@ export const userService = {
     return toSafeData(deletedUser)
   },
 
-  async getOrderHistory(id){
+  async getOrderHistory(id) {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const orderHistories = await userRepository.getOrderHistory(id) 
+    const orderHistories = await userRepository.getOrderHistory(id)
   }
 };

@@ -14,5 +14,5 @@ export const loginSchema = z.object({
 
 export const forgotPasswordSchema = z.object({
     phone: z.string().trim().min(1, "Phone is required"),
-    newPassword: z.string().trim().min(8, "New password must be at least 6 characters")
+    newPassword: z.string().trim().min(8, "New password must be at least 8 characters")
 })

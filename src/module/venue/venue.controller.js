@@ -1,96 +1,28 @@
-// import { SendCreate, SendError, SendSuccess } from "../../utils/response.js";
-// import { prisma } from "../../config/prisma.config.js"
-// import { validateData } from "../../services/validate.js";
-// export default class venueController {
-//     static async getAllVenues(req, res) {
-//         try {
-//             const venues = await prisma.venue.findMany()
-//             return SendSuccess(res, 'Venues retrieved successfully', venues)
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { sendSuccess } from "../../utils/response.js";
+import { venueService } from "./venue.repository.js";
 
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error)
-//         }
-//     }
+export const getVenueById = asyncHandler(async (req, res) => {
+  data = await venueService.getVenueById(req.params.id);
+  return sendSuccess(res, { statusCode: 200, message: "Venue fetched successfully", data });
+});
 
-//     static async getVenueById(req, res) {
-//         try {
-//             const id = req.params.id
-//             const venue = await prisma.venue.findUnique({ where: {id}})
-//             if (!venue) return SendError(res, 404, 'Venue not found')
+export const getVenues = asyncHandler(async (req, res) => {
+  data = await VenueService.getVenueById(req.query);
+  return sendSuccess(res, { statusCode: 200, message: "Venues fetched successfully", data, meta: date.meta });
+});
 
-//             return SendSuccess(res, 'Venue retrieved successfully', venue)
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error)
-//         }
-//     }
+export const createVenue = asyncHandler(async (req, res) => {
+  data = await VenueService.createVenue(req.body);
+  return sendSuccess(res, { statusCode: 201, message: "Venue created successfully", data });
+});
 
-//     static async getVenueByProvince(req, res) {
-//         try {
-//             const search = req.query
-//             const data = prisma.venue.findMany({
-//                 where: {...(search && )}
-//             })
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error)
-//         }
-//     }
+export const updateVenue = asyncHandler(async (req, res) => {
+  data = await VenueService.updateVenue(req.params.id, req.body);
+  return sendSuccess(res, { statusCode: 200, message: "Venue updated successfully", data })
+});
 
-//     static async createVenue(req, res) {
-//         try {
-//             const { name, address, province, mapUrl } = req.body
-//             const validate = await validateData({ name, address, mapUrl, province })
-//             if (validate.length > 0) return SendError(res, 400, 'Bad requset', `${validate.join(', ')} are require`)
-
-//             const venue = await prisma.venue.create({
-//                 data: {
-//                     name,
-//                     province,
-//                     address,
-//                     mapUrl
-//                 }
-//             })
-//             return SendCreate(res, 'Venue created successfully', venue)
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error)
-//         }
-//     }
-
-//     static async updateVenue(req, res) {
-//         try {
-//             const id = req.params.id;
-//             const venue = await prisma.venue.findUnique({ where: { id } });
-//             if (!venue) return SendError(res, 404, 'Venue not found')
-
-//             const { name, address, province, mapUrl } = req.body
-//             const validate = await validateData({ name, address, mapUrl, province })
-//             if (validate.length > 0) return SendError(res, 400, 'Bad requset', `${validate.join(', ')} are require`)
-
-//             const data = await prisma.venue.update({
-//                 data: {
-//                     name,
-//                     province,
-//                     address,
-//                     mapUrl
-//                 },
-//                 where: { id }
-//             })
-
-//             return SendSuccess(res, 'Venue updated successfully', venue)
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error)
-//         }
-//     }
-
-//     static async deleteVenue(req, res) {
-//         try {
-//             const id = req.params.id;
-//             const venue = await prisma.venue.findUnique({ where: { id } });
-//             if (!venue) return SendError(res, 404, 'Venue not found');
-
-//             const data = await prisma.venue.delete({ where: { id } });
-//             return SendSuccess(res, 'Venue deleted successfully', data);
-//         } catch (error) {
-//             return SendError(res, 500, 'Server internal', error);
-//         }
-//     }
-// }
+export const deleteVenue = asyncHandler(async (req, res) => {
+  data = await VenueService.deleteVenue(req.params.id);
+  return sendSuccess(res, { statusCode: 200, message: "Venue deleted successfully", data })
+});
