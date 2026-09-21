@@ -6,7 +6,12 @@ export const categoryRepository = {
     delete: (id) => { return prisma.category.delete({ where: { id } }) },
     findById: (id) => { return prisma.category.findUnique({ where: { id } }) },
     findByName: (name) => { return prisma.category.findFirst({ where: { name } }) },
-    findMany: ({ page, limit, search, sortBy, sortOrder }) => {
+
+    // FIX: this used to be a plain arrow destructuring prisma.$transaction(...)
+    // directly. A Promise is not iterable, so `const [data, total] = promise`
+    // threw "prisma.$transaction(...) is not iterable" on every list request.
+    // Now async + awaited.
+    findMany: async ({ page, limit, search, sortBy, sortOrder }) => {
         const where = { ...(search && { name: { contains: search } }) };
 
         const [data, total] = await prisma.$transaction([
@@ -14,6 +19,8 @@ export const categoryRepository = {
                 where,
                 skip: (page - 1) * limit,
                 take: limit,
+                // FIX: sortBy/sortOrder were accepted as arguments but never used.
+                orderBy: { [sortBy]: sortOrder },
             }),
             prisma.category.count({
                 where

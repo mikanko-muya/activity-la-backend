@@ -1,5 +1,5 @@
 import { sendSuccess } from "../../utils/response.js";
-import { authService } from "./aurh.service.js";
+import { authService } from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js"
 
 

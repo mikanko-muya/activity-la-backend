@@ -1,4 +1,7 @@
 import multer from "multer"
+// FIX: errors live in src/utils/errors, not src/config/errors.
+// The old "./errors/index.js" path crashed the process on import.
+import { BadRequestError } from "../utils/errors/index.js";
 
 const storage = multer.memoryStorage();
 const allowedMimetypes = ["image/jpeg", "image/png", "image/webp", ];
