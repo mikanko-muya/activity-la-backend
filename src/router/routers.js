@@ -16,6 +16,13 @@ import {
     updateUserSchema,
 } from "../module/user/user.schema.js";
 
+import * as EventControllers from "../module/event/event.controller.js";
+import {
+    createEventSchema,
+    getEventsSchema,
+    updateEventSchema,
+} from "../module/event/event.schema.js";
+
 import * as CategoryControllers from "../module/category/category.controller.js";
 import {
     createCategorySchema,
@@ -88,5 +95,32 @@ router.patch(
     CategoryControllers.updateCategory
 );
 router.delete('/categories/:id', authenticate, authorize('ADMIN'), CategoryControllers.deleteCategory);
+
+/* ---------------------------------- events ---------------------------------- */
+// Ported from the version2.0 controller. Reads are public; writes are admin-only,
+// matching categories. ?search= replaces the old empty searchEvent handler.
+
+router.get('/events', validate(getEventsSchema, 'query'), EventControllers.getEvents);
+router.get('/events/category/:categoryId', validate(getEventsSchema, 'query'), EventControllers.getEventsByCategory);
+router.get('/events/:id', EventControllers.getEventById);
+router.post(
+    '/events',
+    authenticate,
+    authorize('ADMIN'),
+    upload.single('cover'),
+    validate(createEventSchema),
+    EventControllers.createEvent
+);
+router.patch(
+    '/events/:id',
+    authenticate,
+    authorize('ADMIN'),
+    upload.single('cover'),
+    validate(updateEventSchema),
+    EventControllers.updateEvent
+);
+router.patch('/events/:id/publish', authenticate, authorize('ADMIN'), EventControllers.publishEvent);
+router.patch('/events/:id/cancel', authenticate, authorize('ADMIN'), EventControllers.cancelEvent);
+router.delete('/events/:id', authenticate, authorize('ADMIN'), EventControllers.deleteEvent);
 
 export default router;
