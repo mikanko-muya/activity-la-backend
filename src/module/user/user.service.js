@@ -2,6 +2,7 @@ import { BadRequestError, ConflictError, NotFoundError } from "../../utils/error
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
+import { buildMeta } from "../../utils/pagination.js";
 // FIX: removed `import { updateUser } from "./user.controller.js"` - unused, and
 // it made service and controller import each other in a cycle.
 
@@ -21,12 +22,7 @@ export const userService = {
     const result = await userRepository.findMany(query);
     return {
       data: result.data.map(toSafeData),
-      meta: {
-        total: result.total,
-        page: query.page,
-        limit: query.limit,
-        totalPages: Math.ceil(result.total / query.limit),
-      },
+      meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
     };
   },
 

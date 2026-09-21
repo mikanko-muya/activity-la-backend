@@ -2,13 +2,9 @@
 // used, and it is not the helper this file wants anyway.
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
+// Shared with the event DTO now that a second module needs the same coercion.
+import { booleanFromText } from "../../utils/schema.js";
 
-// Query strings are always text, so "true"/"false" has to be turned into a real
-// boolean before Prisma sees it. z.boolean() alone rejected every request that
-// passed ?isActive=.
-const booleanFromQuery = z
-    .union([z.boolean(), z.enum(["true", "false"])])
-    .transform((value) => value === true || value === "true");
 
 export const userIdSchema = z.object({
     id: z.string().uuid("Invalid user id format")
@@ -50,7 +46,7 @@ export const getUsersSchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).default(10),
     search: z.string().trim().min(1).optional(),
     role: z.enum(UserRole).optional(),
-    isActive: booleanFromQuery.optional(),
+    isActive: booleanFromText.optional(),
     sortBy: z.enum(["createdAt", "name", "email"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc")
 })

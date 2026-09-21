@@ -1,5 +1,6 @@
 import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
+import { buildMeta } from "../../utils/pagination.js";
 import { categoryRepository } from "./category.repository.js"
 
 
@@ -15,12 +16,7 @@ export const categoryService = {
         const result = await categoryRepository.findMany(query);
         return {
             data: result.data,
-            meta: {
-                total: result.total,
-                page: query.page,
-                limit: query.limit,
-                totalPages: Math.ceil(result.total/ query.limit)
-            }
+            meta: buildMeta({ total: result.total, page: query.page, limit: query.limit })
         }
     },
 
