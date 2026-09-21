@@ -1,5 +1,5 @@
 import { BadRequestError, NotFoundError } from "../../utils/errors/index.js";
-import { uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
+import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { buildMeta } from "../../utils/pagination.js";
 import { categoryRepository } from "../category/category.repository.js";
 import { eventRepository } from "./event.repository.js";
@@ -57,6 +57,7 @@ export const eventService = {
             // The model field is coverImgUrl; the old controller wrote
             // coverImage, which is not a column and would have thrown.
             coverImgUrl: cover.url,
+            coverImgPublicId: cover.publicId,
         });
     },
 
@@ -83,9 +84,23 @@ export const eventService = {
         if (file) {
             const cover = await uploadImageBufferToCloudinary(file.buffer, "events");
             dataToUpdate.coverImgUrl = cover.url;
+            dataToUpdate.coverImgPublicId = cover.publicId;
         }
 
-        return eventRepository.update(id, dataToUpdate);
+        const updated = await eventRepository.update(id, dataToUpdate);
+
+        // Drop the replaced image only once the row points at the new one, so a
+        // failed update never leaves the event referencing a deleted asset.
+        // Events created before coverImgPublicId existed have none, and skip this.
+        if (file && event.coverImgPublicId) {
+            try {
+                await deleteImageFromCloudinary(event.coverImgPublicId);
+            } catch (error) {
+                console.error("Failed to delete old event cover:", error.message);
+            }
+        }
+
+        return updated;
     },
 
     async publishEvent(id) {
@@ -110,6 +125,17 @@ export const eventService = {
         const event = await eventRepository.findById(id);
         if (!event) throw new NotFoundError("Event not found");
 
-        return eventRepository.delete(id);
+        const deleted = await eventRepository.delete(id);
+
+        // After the row is gone, so a Cloudinary outage cannot block the delete.
+        if (event.coverImgPublicId) {
+            try {
+                await deleteImageFromCloudinary(event.coverImgPublicId);
+            } catch (error) {
+                console.error("Failed to delete event cover:", error.message);
+            }
+        }
+
+        return deleted;
     },
 };
