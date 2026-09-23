@@ -13,19 +13,18 @@ export const categoryIdParamSchema = z.object({
 // startAt/endAt arrive as ISO strings; coerce.date() rejects unparseable input
 // rather than silently producing an Invalid Date, which is what
 // `new Date(startAt)` did in the old controller.
-const eventFields = {
-    title: z.string().trim().min(1, "Title is required").max(255),
-    description: z.string().trim().min(1, "Description is required"),
-    startAt: z.coerce.date({ message: "startAt must be a valid date" }),
-    endAt: z.coerce.date({ message: "endAt must be a valid date" }),
-    isFree: booleanFromText.optional(),
-    organizerId: z.string().uuid("Invalid organizer id format"),
-    venueId: z.string().uuid("Invalid venue id format"),
-    categoryId: z.string().uuid("Invalid category id format"),
-};
 
 export const createEventSchema = z
-    .object(eventFields)
+    .object({
+        title: z.string().trim().min(1, "Title is required").max(255),
+        description: z.string().trim().min(1, "Description is required"),
+        startAt: z.coerce.date({ message: "startAt must be a valid date" }),
+        endAt: z.coerce.date({ message: "endAt must be a valid date" }),
+        isFree: booleanFromText.optional(),
+        organizerId: z.string().uuid("Invalid organizer id format"),
+        venueId: z.string().uuid("Invalid venue id format"),
+        categoryId: z.string().uuid("Invalid category id format"),
+    })
     // The old controller accepted an event that ended before it started.
     .refine((data) => data.endAt > data.startAt, {
         message: "endAt must be after startAt",
@@ -34,14 +33,14 @@ export const createEventSchema = z
 
 export const updateEventSchema = z
     .object({
-        title: eventFields.title.optional(),
-        description: eventFields.description.optional(),
-        startAt: eventFields.startAt.optional(),
-        endAt: eventFields.endAt.optional(),
-        isFree: eventFields.isFree,
-        organizerId: eventFields.organizerId.optional(),
-        venueId: eventFields.venueId.optional(),
-        categoryId: eventFields.categoryId.optional(),
+        title: z.string().trim().min(1, "Title is required").max(255).optional(),
+        description: z.string().trim().min(1, "Description is required").optional(),
+        startAt: z.coerce.date({ message: "startAt must be a valid date" }).optional(),
+        endAt: z.coerce.date({ message: "endAt must be a valid date" }).optional(),
+        isFree: booleanFromText.optional(),
+        organizerId: z.string().uuid("Invalid organizer id format").optional(),
+        venueId: z.string().uuid("Invalid venue id format").optional(),
+        categoryId: z.string().uuid("Invalid category id format").optional(),
         eventStatus: z.enum(EventStatus).optional(),
     })
     // Only checkable when both are present; a partial update that moves just one
