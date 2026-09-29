@@ -1,0 +1,17 @@
+model CouponUsage {
+    id String @id @default(uuid()) @db.VarChar(36)
+
+    couponId String
+    userId String
+    orderId String @unique
+
+    usedAt DateTime @default(now())
+    createdAt DateTime @default(now())
+    updatadAt DateTime @updatedAt
+
+    coupon Coupon @relation(fields: [couponId], references: [id])
+    user User @relation(fields: [userId], references: [id])
+    order Order @relation(fields: [orderId], references: [id])
+
+    @@unique([couponId, userId])
+}

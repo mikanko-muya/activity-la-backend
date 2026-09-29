@@ -11,5 +11,4 @@ model Organizer {
   updatedAt DateTime @updatedAt
 
   events      Event[]
-  eventBanner EventBanner[]
 }
