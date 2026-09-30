@@ -1,8 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
 import { OrderHistoryRepository } from "../orderHistory/orderHistory.repository.js";
-// FIX: dropped two dead imports - getPagination (never used; paging is done from
-// the validated query) and getOrderHistory from user.controller.js, which made
-// repository -> controller -> service -> repository a circular import.
 
 export const userRepository = {
   create: (data) => {

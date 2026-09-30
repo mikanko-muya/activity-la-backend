@@ -12,14 +12,13 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 
-// FIX: an unknown path fell through to Express's default HTML error page, so
-// clients got HTML instead of the { success, message } shape every other
-// response uses. Must sit after the routes and before errorHandler.
 app.use((req, _res, next) => {
     next(new NotFoundError(`Route ${req.method} ${req.originalUrl} not found`));
 });
 
 app.use(errorHandler)
+
+app.use("/api/v1", router);
 
 app.listen(PORT, ()=>{
     console.log(`http://localhost:${PORT}`);

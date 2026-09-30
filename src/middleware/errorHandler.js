@@ -2,7 +2,6 @@ import { AppError } from "../utils/errors/app.error.js"
 import { sendError } from "../utils/response.js"
 
 export const errorHandler = (err, _req, res, _next) => {
-
     if (err?.name === "PrismaClientKnownRequestError") {
         if (err.code === "P2002") {
             return sendError(res, {
@@ -24,9 +23,6 @@ export const errorHandler = (err, _req, res, _next) => {
         }
     }
 
-    // FIX: multer's own errors (file too large, unexpected field) are plain
-    // MulterErrors, not AppErrors, so they fell through to a generic 500 and the
-    // client never learned the upload was simply too big.
     if (err?.name === "MulterError") {
         const message = err.code === "LIMIT_FILE_SIZE"
             ? "Image is too large (max 5MB)"

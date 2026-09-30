@@ -10,10 +10,6 @@ export const categoryIdParamSchema = z.object({
     categoryId: z.string().uuid("Invalid category id format"),
 });
 
-// startAt/endAt arrive as ISO strings; coerce.date() rejects unparseable input
-// rather than silently producing an Invalid Date, which is what
-// `new Date(startAt)` did in the old controller.
-
 export const createEventSchema = z
     .object({
         title: z.string().trim().min(1, "Title is required").max(255),
@@ -25,7 +21,6 @@ export const createEventSchema = z
         venueId: z.string().uuid("Invalid venue id format"),
         categoryId: z.string().uuid("Invalid category id format"),
     })
-    // The old controller accepted an event that ended before it started.
     .refine((data) => data.endAt > data.startAt, {
         message: "endAt must be after startAt",
         path: ["endAt"],
@@ -43,8 +38,6 @@ export const updateEventSchema = z
         categoryId: z.string().uuid("Invalid category id format").optional(),
         eventStatus: z.enum(EventStatus).optional(),
     })
-    // Only checkable when both are present; a partial update that moves just one
-    // of them is validated against the stored event in the service.
     .refine((data) => !data.startAt || !data.endAt || data.endAt > data.startAt, {
         message: "endAt must be after startAt",
         path: ["endAt"],
@@ -53,8 +46,6 @@ export const updateEventSchema = z
 export const getEventsSchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
-    // Replaces the searchEvent handler, which was an empty try/catch that
-    // returned nothing at all.
     search: z.string().trim().min(1).optional(),
     categoryId: z.string().uuid().optional(),
     organizerId: z.string().uuid().optional(),
