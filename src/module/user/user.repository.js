@@ -1,7 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
-import { getPagination } from "../../utils/pagination.js";
-import { OrderHistoryRepository } from "../orderHistory/oderHistory.repository.js";
-import { getOrderHistory } from "./user.controller.js";
+import { OrderHistoryRepository } from "../orderHistory/orderHistory.repository.js";
 
 export const userRepository = {
   create: (data) => {

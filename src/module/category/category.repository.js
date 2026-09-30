@@ -6,7 +6,8 @@ export const categoryRepository = {
     delete: (id) => { return prisma.category.delete({ where: { id } }) },
     findById: (id) => { return prisma.category.findUnique({ where: { id } }) },
     findByName: (name) => { return prisma.category.findFirst({ where: { name } }) },
-    findMany: ({ page, limit, search, sortBy, sortOrder }) => {
+
+    findMany: async ({ page, limit, search, sortBy, sortOrder }) => {
         const where = { ...(search && { name: { contains: search } }) };
 
         const [data, total] = await prisma.$transaction([
@@ -14,6 +15,7 @@ export const categoryRepository = {
                 where,
                 skip: (page - 1) * limit,
                 take: limit,
+                orderBy: { [sortBy]: sortOrder },
             }),
             prisma.category.count({
                 where

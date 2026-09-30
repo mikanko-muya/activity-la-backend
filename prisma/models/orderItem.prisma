@@ -5,8 +5,8 @@ model OrderItem {
   ticketId String
 
   quantity  Int
-  unitPrice Int
-  subtotal  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

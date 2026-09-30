@@ -1,40 +1,52 @@
-import { prisma } from "../../config/prisma.config.js"
+import { prisma } from "../../config/prisma.config.js";
 
-const defaultInclude = {
+const include = {
     organizer: true,
     venue: true,
     category: true,
-}
+};
 
 export const eventRepository = {
-    findById: (id) => { return prisma.event.findUnique({ where: { id }, include: { ...defaultInclude, ticketTypes: true } }) },
-    create: (data) => { return prisma.event.create({ data, include: defaultInclude }) },
-    update: (id, data) => { return prisma.event.update({ where: { id }, data, include: defaultInclude }) },
-    delete: (id) => { return prisma.event.delete({ where: { id } }) },
-    findMany: async ({ page, limit, search, status, organizerId, venueId, categoryId, sortBy, sortOrder }) => {
+    create: (data) => prisma.event.create({ data, include }),
+    update: (id, data) => prisma.event.update({ where: { id }, data, include }),
+    delete: (id) => prisma.event.delete({ where: { id } }),
+    findById: (id) => prisma.event.findUnique({ where: { id }, include }),
+
+    findRelations: async ({ organizerId, venueId, categoryId }) => {
+        const [organizer, venue, category] = await prisma.$transaction([
+            prisma.organizer.findUnique({ where: { id: organizerId ?? "" } }),
+            prisma.venue.findUnique({ where: { id: venueId ?? "" } }),
+            prisma.category.findUnique({ where: { id: categoryId ?? "" } }),
+        ]);
+        return { organizer, venue, category };
+    },
+
+    findMany: async ({ page, limit, search, categoryId, organizerId, venueId, eventStatus, isFree, sortBy, sortOrder }) => {
         const where = {
-            ...(status && { status }),
+            ...(categoryId && { categoryId }),
             ...(organizerId && { organizerId }),
             ...(venueId && { venueId }),
-            ...(categoryId && { categoryId }),
-            ...(search && { title: { contains: search } })
+            ...(eventStatus && { eventStatus }),
+            ...(isFree !== undefined && { isFree }),
+            ...(search && {
+                OR: [
+                    { title: { contains: search } },
+                    { description: { contains: search } },
+                ],
+            }),
         };
 
         const [data, total] = await prisma.$transaction([
             prisma.event.findMany({
                 where,
+                include,
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { [sortBy]: sortOrder },
-                include: defaultInclude,
             }),
-            prisma.event.count({ where })
-        ])
+            prisma.event.count({ where }),
+        ]);
 
-        return { data, total }
+        return { data, total };
     },
-
-    organizerExists: async (organizerId) => { return await prisma.organizer.count({ where: { id: organizerId } }) > 0 },
-    venueExists: async (venueId) => { return await prisma.venue.count({ where: { id: venueId } }) > 0 },
-    categoryExists: async (categoryId) => { return await prisma.category.count({ where: { id: categoryId } }) > 0 },
-}
+};

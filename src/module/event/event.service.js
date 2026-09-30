@@ -1,23 +1,26 @@
-import { NotFoundError } from "../../utils/errors/index.js";
+import { BadRequestError, NotFoundError } from "../../utils/errors/index.js";
+import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
+import { buildMeta } from "../../utils/pagination.js";
+import { categoryRepository } from "../category/category.repository.js";
 import { eventRepository } from "./event.repository.js";
 
-assertReferencesExist = async ({ organizerId, venueId, categoryId }) => {
-    if (organizerId) {
-        const exists = await eventRepository.organizerExists(organizerId);
-        if (!exists) throw new NotFoundError(`Organizer with id "${organizerId}" not found`);
-    }
-    if (venueId) {
-        const exists = await eventRepository.venueExists(venueId);
-        if (!exists) throw new NotFoundError(`Venue with id "${venueId}" not found`);
-    }
-    if (categoryId) {
-        const exists = await eventRepository.categoryExists(categoryId);
-        if (!exists) throw new NotFoundError(`Category with id "${categoryId}" not found`);
-    }
+const assertRelationsExist = async (input) => {
+    const wanted = {
+        organizerId: input.organizerId,
+        venueId: input.venueId,
+        categoryId: input.categoryId,
+    };
+    if (!wanted.organizerId && !wanted.venueId && !wanted.categoryId) return;
+
+    const { organizer, venue, category } = await eventRepository.findRelations(wanted);
+
+    if (wanted.organizerId && !organizer) throw new NotFoundError("Organizer not found");
+    if (wanted.venueId && !venue) throw new NotFoundError("Venue not found");
+    if (wanted.categoryId && !category) throw new NotFoundError("Category not found");
 };
 
 export const eventService = {
-    async getEvent(id) {
+    async getEventById(id) {
         const event = await eventRepository.findById(id);
         if (!event) throw new NotFoundError("Event not found");
         return event;
@@ -25,94 +28,95 @@ export const eventService = {
 
     async getEvents(query) {
         const result = await eventRepository.findMany(query);
-        return {
-            data: result.data,
-            meta: {
-                total: result.total,
-                page: query.page,
-                limit: query.limit,
-                totalPages: Math.ceil(result.total / query.limit),
-            }
-        }
+        return { data: result.data, meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }) };
+    },
+
+    async getEventsByCategory(categoryId, query) {
+        const category = await categoryRepository.findById(categoryId);
+        if (!category) throw new NotFoundError("Category not found");
+
+        return eventService.getEvents({ ...query, categoryId });
     },
 
     async createEvent(input, file) {
-        await assertReferencesExist(input);
+        await assertRelationsExist(input);
 
-        let uploadImage = null;
-        if (file) {
-            uploadImage = await uploadImageBufferToCloudinary(file.buffer, "eventCoverImage")
-            input.coverImageUrl = uploadImage.url;
-            input.coverImagePublic = uploadImage.publicId;
-        }
+        if (!file) throw new BadRequestError("Cover image is required");
 
-        let event
-        try {
-            event = await eventRepository.create(input)
-        } catch (err) {
-            if (uploadImage?.publicId) {
-                try {
-                    await deleteImageFromCloudinary(uploadImage.publicId)
-                } catch (rollbackError) {
-                    console.error("Failed to rollback uploaded image: ", rollbackError.message);
-                }
-            }
+        const cover = await uploadImageBufferToCloudinary(file.buffer, "events");
 
-            throw err
-        }
-
-        return event;
+        return eventRepository.create({
+            ...input,
+            coverImgUrl: cover.url,
+            coverImgPublicId: cover.publicId,
+        });
     },
 
     async updateEvent(id, input, file) {
         const event = await eventRepository.findById(id);
         if (!event) throw new NotFoundError("Event not found");
 
-        await assertReferencesExist(input)
-
-        if (input.startAt || input.endAt) {
-            const startAt = input.startAt ?? event.startAt;
-            const endAt = input.endAt ?? event.endAt;
-
-            if (endAt <= startAt) {
-                throw new BadRequestError("endAt must be later than startAt");
-            }
+        if ((!input || Object.keys(input).length === 0) && !file) {
+            throw new BadRequestError("At least one change is required to update");
         }
 
-        let uploadImage = null;
+        await assertRelationsExist(input);
+
+        const startAt = input.startAt ?? event.startAt;
+        const endAt = input.endAt ?? event.endAt;
+        if (endAt <= startAt) {
+            throw new BadRequestError("endAt must be after startAt");
+        }
+
+        const dataToUpdate = { ...input };
+
         if (file) {
-            uploadImage = await uploadImageBufferToCloudinary(file.buffer, "eventCoverImage")
-            input.coverImageUrl = uploadImage.url;
-            input.coverImagePublic = uploadImage.publicId;
+            const cover = await uploadImageBufferToCloudinary(file.buffer, "events");
+            dataToUpdate.coverImgUrl = cover.url;
+            dataToUpdate.coverImgPublicId = cover.publicId;
         }
 
-        let updatedEvent
-        try {
-            updatedEvent = await eventRepository.create(input)
-        } catch (err) {
-            if (uploadImage?.publicId) {
-                try {
-                    await deleteImageFromCloudinary(uploadImage.publicId)
-                } catch (rollbackError) {
-                    console.error("Failed to rollback uploaded image: ", rollbackError.message);
-                }
+        const updated = await eventRepository.update(id, dataToUpdate);
+
+        if (file && event.coverImgPublicId) {
+            try {
+                await deleteImageFromCloudinary(event.coverImgPublicId);
+            } catch (error) {
+                console.error("Failed to delete old event cover:", error.message);
             }
-
-            throw err
         }
 
-        return updatedEvent;
+        return updated;
+    },
+
+    async publishEvent(id) {
+        const event = await eventRepository.findById(id);
+        if (!event) throw new NotFoundError("Event not found");
+
+        return eventRepository.update(id, { eventStatus: "PUBLISHED" });
+    },
+
+    async cancelEvent(id) {
+        const event = await eventRepository.findById(id);
+        if (!event) throw new NotFoundError("Event not found");
+
+        return eventRepository.update(id, { eventStatus: "CANCELLED" });
     },
 
     async deleteEvent(id) {
-        const event = await eventRepository.findById(id),
+        const event = await eventRepository.findById(id);
         if (!event) throw new NotFoundError("Event not found");
 
-        const deletedEvent = await eventRepository.delete(id),
-        return deletedEvent
+        const deleted = await eventRepository.delete(id);
 
-    }
+        if (event.coverImgPublicId) {
+            try {
+                await deleteImageFromCloudinary(event.coverImgPublicId);
+            } catch (error) {
+                console.error("Failed to delete event cover:", error.message);
+            }
+        }
 
-}
-
-
+        return deleted;
+    },
+};

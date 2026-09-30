@@ -2,7 +2,7 @@ import { BadRequestError, ConflictError, NotFoundError } from "../../utils/error
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
-import { createUser, updateUser } from "./user.controller.js";
+import { buildMeta } from "../../utils/pagination.js";
 
 const toSafeData = (data) => {
   const { password, profilePublicId, ...safeData } = data
@@ -19,49 +19,22 @@ export const userService = {
   async getUsers(query) {
     const result = await userRepository.findMany(query);
     return {
-      data: result.data,
-      meta: {
-        total: result.total,
-        page: query.page,
-        limit: query.limit,
-        totalPages: Math.ceil(result.total / query.limit),
-      },
+      data: result.data.map(toSafeData),
+      meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
     };
   },
 
-  async createUser(input, file) {
-    const existingPhone = await authRepository.findByPhone(input.phone);
+  async createUser(input) {
+    const existingPhone = await userRepository.findByPhone(input.phone);
     if (existingPhone) throw new ConflictError("Phone is already registered");
 
-    const hashedPassword = await hashPassword(input.password);
+    const existingEmail = await userRepository.findByEmail(input.email);
+    if (existingEmail) throw new ConflictError("Email is already registered");
 
-    const dataToCreate = {
+    const user = await userRepository.create({
       ...input,
-      password: hashedPassword,
-    }
-
-    let uploadImage = null;
-    if (file) {
-      uploadImage = await uploadImageBufferToCloudinary(file.buffer, "users");
-
-      dataToCreate.profileUrl = uploadImage.url;
-      dataToCreate.profilePublicId = uploadImage.publicId;
-    }
-
-    let user
-    try {
-      user = await userRepository.create(dataToCreate);
-    } catch (err) {
-      if (uploadImage?.publicId) {
-        try {
-          await deleteImageFromCloudinary(uploadImage.publicId);
-        } catch (err) {
-          console.error("Failed to rollback uploaded image: ", err.message);
-        }
-      }
-
-      throw err;
-    }
+      password: await hashPassword(input.password),
+    });
 
     return toSafeData(user);
   },
@@ -76,43 +49,34 @@ export const userService = {
 
     const dataToUpdate = { ...input };
 
-    if (input.phone && input.phone !== user.phone) {
-      const existingPhone = await userRepository.findByPhone(dataToUpdate.phone);
-      if (existingPhone) throw new ConflictError("Phone is already registed");
+    if (input?.phone) {
+      const existingPhone = await userRepository.findByPhone(input.phone);
+      if (existingPhone && existingPhone.id !== id) throw new ConflictError("Phone is already registed");
     }
 
-    if (input.password) {
+    if (input?.email) {
+      const existingEmail = await userRepository.findByEmail(input.email);
+      if (existingEmail && existingEmail.id !== id) throw new ConflictError("Email is already registed");
+    }
+
+    if (input?.password) {
       dataToUpdate.password = await hashPassword(input.password)
     }
 
-    let uploadImage = null
     if (file) {
-      uploadImage = await uploadImageBufferToCloudinary(file.buffer, "users")
+      const newImage = await uploadImageBufferToCloudinary(file.buffer, "users")
 
-      dataToUpdate.profileUrl = uploadImage.url;
-      dataToUpdate.profilePublicId = uploadImage.publicId;
+      dataToUpdate.profileUrl = newImage.url;
+      dataToUpdate.profilePublicId = newImage.publicId;
     }
 
-    let updatedUser
-    try {
-      updatedUser = await userRepository.update(id, dataToUpdate);
-    } catch (err) {
-      if (uploadImage?.publicId) {
-        try {
-          await deleteImageFromCloudinary(uploadImage.publicId)
-        } catch (err) {
-          console.error("Failed to rollback uploaded image: ", err.message);
-        }
-      }
-
-      throw err;
-    }
+    const updatedUser = await userRepository.update(id, dataToUpdate)
 
     if (file && user.profilePublicId) {
       try {
         await deleteImageFromCloudinary(user.profilePublicId);
-      } catch (err) {
-        console.error("Failed to delete old profile image:", err.message);
+      } catch (error) {
+        console.error("Failed to delete old profile image:", error.message);
       }
     }
     return toSafeData(updatedUser);
@@ -122,7 +86,7 @@ export const userService = {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const isPasswordValid = await comparePassword(input.OldPassword, user.password)
+    const isPasswordValid = await comparePassword(input.oldPassword, user.password)
     if (!isPasswordValid) throw new BadRequestError("Invalid Old Password")
 
     const newHashPassword = await hashPassword(input.newPassword)
@@ -131,19 +95,38 @@ export const userService = {
     return toSafeData(updatedUser)
   },
 
+  async assignRole(id, role) {
+    const user = await userRepository.findById(id);
+    if (!user) throw new NotFoundError("User not found");
+
+    if (user.role === role) {
+      throw new BadRequestError(`User already has the role ${role}`);
+    }
+
+    return toSafeData(await userRepository.update(id, { role }));
+  },
+
   async deleteUser(id) {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
     const deletedUser = await userRepository.delete(id);
 
+    if (user.profilePublicId) {
+      try {
+        await deleteImageFromCloudinary(user.profilePublicId);
+      } catch (error) {
+        console.error("Failed to delete profile image:", error.message);
+      }
+    }
+
     return toSafeData(deletedUser)
   },
 
-  async getOrderHistory(id) {
+  async getOrderHistory(id){
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const orderHistories = await userRepository.getOrderHistory(id)
+    return userRepository.findOrderHistory(id);
   }
 };

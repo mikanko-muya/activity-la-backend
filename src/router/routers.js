@@ -1,10 +1,28 @@
-import express from "express";
-import * as AuthControllers from "../module/auth/auth.controller.js";
-import { validate } from "../middleware/validation.js"
-import { registerSchema } from "../module/auth/auth.schema.js";
-const router = express.Router();
+import { Router } from "express";
 
-router.post('/auth/register',validate(registerSchema) ,AuthControllers.register);
-router.post('/auth/login', AuthControllers.login)
+import { authenticate } from "../middleware/auth.js";
+
+import auth from "../module/auth/auth.controller.js";
+import user from "../module/user/user.controller.js";
+import category from "../module/category/category.controller.js";
+import event from "../module/event/event.controller.js";
+import venue from "../module/venue/venue.controller.js";
+import order from "../module/order/order.controller.js";
+import categoryPublic from "../module/category/category.public.controller.js";
+import eventPublic from "../module/event/event.public.controller.js";
+import venuePublic from "../module/venue/venue.public.controller.js";
+
+const router = Router();
+
+router.use("/auth", auth);
+router.use("/public/categories", categoryPublic);
+router.use("/public/events", eventPublic);
+router.use("/public/venues", venuePublic);
+
+router.use("/users", authenticate, user);
+router.use("/categories", authenticate, category);
+router.use("/events", authenticate, event);
+router.use("/venues", authenticate, venue);
+router.use("/orders", authenticate, order);
 
 export default router;

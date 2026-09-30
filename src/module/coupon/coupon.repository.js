@@ -1,35 +1,57 @@
-import { prisma } from "../../config/prisma.config.js"
+import { prisma } from "../../config/prisma.config.js";
+
+const include = {
+  event: { select: { id: true, title: true } },
+};
 
 export const couponRepository = {
-    findById: (id) => { return prisma.coupon.findUnique({ where: { id }, include: { event: true } }) },
-    create: (data) => { return prisma.coupon.create({ data, include: { event: true } }) },
-    update: (id, data) => { return prisma.coupon.update({ where: { id }, data, include: { event: true } }) },
-    delete: (id) => { return prisma.coupon.delete({ where: { id } }) },
-    findMany: async ({ page, limit, search, isUsed, eventId, sortBy, sortOrder }) => {
-        const where = {
-            ...(isUsed !== undefined && { isUsed }),
-            ...(eventId && { eventId }),
-            ...(search && {
-                OR: [
-                    { code: { contains: search } },
-                    { event: { name: { contains: search } } }
-                ]
-            })
-        };
+  create: (data) => prisma.coupon.create({ data, include }),
+  update: (id, data) => prisma.coupon.update({ where: { id }, data, include }),
+  delete: (id) => prisma.coupon.delete({ where: { id } }),
 
-        const [data, total] = await prisma.$transaction([
-            prisma.coupon.findMany({
-                where,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { [sortBy]: sortOrder },
-                include: { event: true },
-            }),
-            prisma.coupon.count({ where })
-        ])
+  findById: (id) => prisma.coupon.findUnique({ where: { id }, include }),
 
-        return { data, total }
-    },
+  findByCode: (code) => prisma.coupon.findUnique({ where: { code }, include }),
 
-    eventExists: async (eventId) => { return await prisma.event.count({ where: { id: eventId } }) > 0 },
-}
+  existsByCode: async (code) =>
+    (await prisma.coupon.count({ where: { code } })) > 0,
+
+  findMany: async ({
+    page,
+    limit,
+    search,
+    eventId,
+    discountType,
+    isActive,
+    sortBy,
+    sortOrder,
+  }) => {
+    const where = {
+      ...(eventId && { eventId }),
+      ...(discountType && { discountType }),
+      ...(isActive !== undefined && { isActive }),
+      ...(search && { code: { contains: search.toUpperCase() } }),
+    };
+
+    const [data, total] = await prisma.$transaction([
+      prisma.coupon.findMany({
+        where,
+        include,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      prisma.coupon.count({ where }),
+    ]);
+
+    return { data, total };
+  },
+
+  findRedemptionByUser: (couponId, userId) =>
+    prisma.couponUsage.findUnique({
+      where: { couponId_userId: { couponId, userId } },
+    }),
+
+  countRedemptions: (couponId) =>
+    prisma.couponUsage.count({ where: { couponId } }),
+};

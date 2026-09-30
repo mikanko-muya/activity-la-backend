@@ -8,7 +8,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon src/index.js"
+    "start": "nodemon src/index.js",
+    "seed:superadmin": "node src/scripts/seed-superadmin.js"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.10.0",

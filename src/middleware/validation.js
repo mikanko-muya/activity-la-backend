@@ -1,9 +1,10 @@
-import { BadRequestError } from "../utils/errors/index.js"
+import {BadRequestError} from "../utils/errors/index.js"
 
 export const validate = (schema, target = "body") => (req, res, next) => {
-    const result = schema.safeParse(req[target])
+    const payload = req[target] ?? {};
+    const result = schema.safeParse(payload)
 
-    if (!result.success) {
+    if(!result.success) {
         const details = result.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message
@@ -12,6 +13,16 @@ export const validate = (schema, target = "body") => (req, res, next) => {
         return next(new BadRequestError("Bad request", details))
     }
 
-    req[target] = result.data;
+    if (target === "query") {
+        Object.defineProperty(req, "query", {
+            value: result.data,
+            writable: true,
+            configurable: true,
+            enumerable: true,
+        });
+    } else {
+        req[target] = result.data;
+    }
+
     next()
 }

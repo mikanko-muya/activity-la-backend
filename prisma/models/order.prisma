@@ -5,9 +5,9 @@ model Order {
   eventId  String
   couponId String?
 
-  subtotalAmount      Decimal          @db.Decimal(10, 2)
-  discountTotalAmount Decimal          @db.Decimal(10, 2) @default(0)
-  totalAmount         Decimal          @db.Decimal(10, 2)
+  subtotalAmount      Decimal     @db.Decimal(10, 2)
+  discountTotalAmount Decimal     @default(0) @db.Decimal(10, 2)
+  totalAmount         Decimal     @db.Decimal(10, 2)
   status              OrderStatus @default(PENDING)
   expiresAt           DateTime?
 
@@ -22,5 +22,5 @@ model Order {
   tickets      Tickets[]
   payments     Payment[]
   orderHistory OrderHistory[]
-  couponUsage  CouponUsage[]
+  couponRedemption CouponRedemption?
 }

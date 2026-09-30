@@ -1,30 +1,47 @@
+import { Router } from "express";
+
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { sendSuccess } from "../../utils/response.js";
+import { validate } from "../../middleware/validation.js";
+import { requirePermission } from "../../middleware/auth.js";
+import { Permissions } from "../../config/permissions.js";
+import { upload } from "../../middleware/multer.js";
 import { categoryService } from "./category.service.js";
+import { categoryIdSchema, createCategorySchema, updateCategorySchema } from "./category.schema.js";
 
-export const getCategoryById = asyncHandler(async (req, res) => {
-    const data = await categoryService.getCategoryById(req.params.id);
-    return sendSuccess(res, { statusCode: 200, message: "Category fetched successfully", data });
-})
+const router = Router();
 
-export const getCategories = asyncHandler(async (req, res) => {
-    const data = await categoryService.getCategories(req.query);
-    return sendSuccess(res, { statusCode: 200, message: "Categories fetched successfully", data , meta: data.meta });
-})
+router.post(
+    "/",
+    requirePermission(Permissions.category.create),
+    upload.single("icon"),
+    validate(createCategorySchema),
+    asyncHandler(async (req, res) => {
+        const data = await categoryService.createCategory(req.body, req.file);
+        return sendSuccess(res, { statusCode: 201, message: "Category created successfully", data });
+    })
+);
 
-export const createCategory = asyncHandler(async (req, res) => {
-    const data = await categoryService.createCategory(req.body, req.file);
-    return sendSuccess(res, { statusCode: 201, message: "Category created successfully", data });
-})
+router.patch(
+    "/:id",
+    requirePermission(Permissions.category.update),
+    validate(categoryIdSchema, "params"),
+    upload.single("icon"),
+    validate(updateCategorySchema),
+    asyncHandler(async (req, res) => {
+        const data = await categoryService.updateCategory(req.params.id, req.body, req.file);
+        return sendSuccess(res, { statusCode: 200, message: "Category updated successfully", data });
+    })
+);
 
-export const updateCategory = asyncHandler(async (req, res) => {
-    const data = await categoryService.updateCategory(req.params.id, req.body, req.file);
-    return sendSuccess(res, { statusCode: 200, message: "Category updated successfully", data });
-})
+router.delete(
+    "/:id",
+    requirePermission(Permissions.category.delete),
+    validate(categoryIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await categoryService.deleteCategory(req.params.id);
+        return sendSuccess(res, { statusCode: 200, message: "Category deleted successfully", data });
+    })
+);
 
-export const deleteCategory = asyncHandler(async (req, res) => {
-    const data = await categoryService.deleteCategory(req.params.id);
-    return sendSuccess(res, { statusCode: 201, message: "Category deleted successfully", data });
-})
-
-
+export default router;

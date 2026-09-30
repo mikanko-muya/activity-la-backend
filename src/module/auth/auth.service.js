@@ -39,7 +39,7 @@ export const authService = {
     const user = await authRepository.findByPhone(input.phone);
     if (!user) throw new BadRequestError("Invalid phone");
 
-    const hashedPassword = hashPassword(input.password);
+    const hashedPassword = await hashPassword(input.newPassword);
     const update = await authRepository.updateById(user.id, { password: hashedPassword });
     return toSafeData(update);
   },

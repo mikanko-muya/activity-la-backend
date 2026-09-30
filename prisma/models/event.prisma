@@ -1,13 +1,13 @@
 model Event {
-  id                 String      @id @default(uuid()) @db.VarChar(36)
-  title              String
-  description        String
-  coverImageUrl      String?
-  coverImagePublicId String?
-  startAt            DateTime
-  endAt              DateTime
-  isFree             Boolean     @default(true)
-  satus              EventStatus @default(DRAFT)
+  id               String      @id @default(uuid()) @db.VarChar(36)
+  title            String
+  description      String
+  coverImgUrl      String?
+  coverImgPublicId String?
+  startAt          DateTime
+  endAt            DateTime
+  isFree           Boolean     @default(true)
+  eventStatus      EventStatus @default(DRAFT)
 
   organizerId String
   venueId     String
@@ -20,10 +20,10 @@ model Event {
   venue     Venue     @relation(fields: [venueId], references: [id])
   category  Category  @relation(fields: [categoryId], references: [id])
 
+  coupons      Coupon[]
   ticketTypes  TicketType[]
   orders       Order[]
   banners      EventBanner[]
   orderHistory OrderHistory[]
   notification Notification[]
-  coupon       Coupon[]
 }

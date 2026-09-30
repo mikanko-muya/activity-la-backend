@@ -1,4 +1,4 @@
-import { BadRequestError } from "../utils/errors.js"
+import { BadRequestError } from "../utils/errors/index.js"
 import { sendError } from "../utils/response.js"
 
 export const requireFile = (fieldName = "file") => {

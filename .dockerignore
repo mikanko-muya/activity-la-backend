@@ -1,0 +1,6 @@
+node_modules
+.git
+.env
+sit-project
+src/generated
+.agents
