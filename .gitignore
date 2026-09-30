@@ -3,3 +3,5 @@ node_modules
 .env
 
 /src/generated/prisma
+# Reference project, has its own git repo - not part of this one
+sit-project/
