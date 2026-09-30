@@ -5,10 +5,14 @@ model Coupon {
   discountValue Decimal
   validFrom     DateTime
   validTo       DateTime
-  isUsed        Boolean      @default(false)
+  usageLimit    Int?
+  usedCount     Int          @default(0)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  eventId       String
+  event         Event        @relation(fields: [eventId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orders Order[]
+  orders           Order[]
+  couponRedemption CouponRedemption[]
 }

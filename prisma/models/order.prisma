@@ -17,8 +17,9 @@ model Order {
   event  Event   @relation(fields: [eventId], references: [id])
   coupon Coupon? @relation(fields: [couponId], references: [id])
 
-  orderItems   OrderItem[]
-  tickets      Tickets[]
-  payments     Payment[]
-  orderHistory OrderHistory[]
+  orderItems       OrderItem[]
+  tickets          Tickets[]
+  payments         Payment[]
+  orderHistory     OrderHistory[]
+  couponRedemption CouponRedemption[]
 }

@@ -20,6 +20,7 @@ model Event {
   venue     Venue     @relation(fields: [venueId], references: [id])
   category  Category  @relation(fields: [categoryId], references: [id])
 
+  Coupon       Coupon[]
   ticketTypes  TicketType[]
   orders       Order[]
   banners      EventBanner[]
