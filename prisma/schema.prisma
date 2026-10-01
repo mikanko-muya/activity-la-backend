@@ -5,6 +5,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewfeatures = {"primaSchemaFolder"}
   // output   = "../src/generated/prisma"
 }
 

@@ -1,6 +1,6 @@
 import express from "express"
 import cors from "cors";
-import router from "./router/routers.js";
+import router from "./router/index.js";
 import { PORT } from "./config/globalkey.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 

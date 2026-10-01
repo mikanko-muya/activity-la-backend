@@ -2,7 +2,9 @@ import { BadRequestError, ConflictError, NotFoundError } from "../../utils/error
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
-import { createUser, updateUser } from "./user.controller.js";
+import { buildMeta } from "../../utils/pagination.js";
+// FIX: removed `import { updateUser } from "./user.controller.js"` - unused, and
+// it made service and controller import each other in a cycle.
 
 const toSafeData = (data) => {
   const { password, profilePublicId, ...safeData } = data
@@ -19,49 +21,25 @@ export const userService = {
   async getUsers(query) {
     const result = await userRepository.findMany(query);
     return {
-      data: result.data,
-      meta: {
-        total: result.total,
-        page: query.page,
-        limit: query.limit,
-        totalPages: Math.ceil(result.total / query.limit),
-      },
+      data: result.data.map(toSafeData),
+      meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
     };
   },
 
-  async createUser(input, file) {
-    const existingPhone = await authRepository.findByPhone(input.phone);
+  // FIX: user.controller.js called userService.createUser, which did not exist
+  // (the route answered 500 "createUser is not a function"). This is the
+  // admin-side create; public signup still goes through authService.register.
+  async createUser(input) {
+    const existingPhone = await userRepository.findByPhone(input.phone);
     if (existingPhone) throw new ConflictError("Phone is already registered");
 
-    const hashedPassword = await hashPassword(input.password);
+    const existingEmail = await userRepository.findByEmail(input.email);
+    if (existingEmail) throw new ConflictError("Email is already registered");
 
-    const dataToCreate = {
+    const user = await userRepository.create({
       ...input,
-      password: hashedPassword,
-    }
-
-    let uploadImage = null;
-    if (file) {
-      uploadImage = await uploadImageBufferToCloudinary(file.buffer, "users");
-
-      dataToCreate.profileUrl = uploadImage.url;
-      dataToCreate.profilePublicId = uploadImage.publicId;
-    }
-
-    let user
-    try {
-      user = await userRepository.create(dataToCreate);
-    } catch (err) {
-      if (uploadImage?.publicId) {
-        try {
-          await deleteImageFromCloudinary(uploadImage.publicId);
-        } catch (err) {
-          console.error("Failed to rollback uploaded image: ", err.message);
-        }
-      }
-
-      throw err;
-    }
+      password: await hashPassword(input.password),
+    });
 
     return toSafeData(user);
   },
@@ -76,12 +54,21 @@ export const userService = {
 
     const dataToUpdate = { ...input };
 
-    if (input.phone && input.phone !== user.phone) {
-      const existingPhone = await userRepository.findByPhone(dataToUpdate.phone);
-      if (existingPhone) throw new ConflictError("Phone is already registed");
+    // FIX: these read `input.phone` / `input.password` unguarded. The controller
+    // was passing req.file in the `input` slot, so input could be undefined and
+    // this threw before reaching the update. Optional chaining plus the fixed
+    // controller call keeps it safe either way.
+    if (input?.phone) {
+      const existingPhone = await userRepository.findByPhone(input.phone);
+      if (existingPhone && existingPhone.id !== id) throw new ConflictError("Phone is already registed");
     }
 
-    if (input.password) {
+    if (input?.email) {
+      const existingEmail = await userRepository.findByEmail(input.email);
+      if (existingEmail && existingEmail.id !== id) throw new ConflictError("Email is already registed");
+    }
+
+    if (input?.password) {
       dataToUpdate.password = await hashPassword(input.password)
     }
 
@@ -122,7 +109,10 @@ export const userService = {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const isPasswordValid = await comparePassword(input.OldPassword, user.password)
+    // FIX: read input.OldPassword (capital O) while changePasswordSchema defines
+    // `oldPassword`. comparePassword got undefined, so this always answered
+    // "Invalid Old Password" and nobody could ever change their password.
+    const isPasswordValid = await comparePassword(input.oldPassword, user.password)
     if (!isPasswordValid) throw new BadRequestError("Invalid Old Password")
 
     const newHashPassword = await hashPassword(input.newPassword)
@@ -137,6 +127,16 @@ export const userService = {
 
     const deletedUser = await userRepository.delete(id);
 
+    // Clean up the avatar after the row is gone, so a Cloudinary hiccup does not
+    // block the delete. Failure here is logged, not fatal.
+    if (user.profilePublicId) {
+      try {
+        await deleteImageFromCloudinary(user.profilePublicId);
+      } catch (error) {
+        console.error("Failed to delete profile image:", error.message);
+      }
+    }
+
     return toSafeData(deletedUser)
   },
 
@@ -144,6 +144,8 @@ export const userService = {
     const user = await userRepository.findById(id);
     if (!user) throw new NotFoundError("User not found");
 
-    const orderHistories = await userRepository.getOrderHistory(id)
+    // FIX: called userRepository.getOrderHistory, but the repository method is
+    // named findOrderHistory - this threw "is not a function".
+    return userRepository.findOrderHistory(id);
   }
 };
