@@ -20,12 +20,4 @@ export const getCategoriesSchema = z.object({
     search: z.string().trim().min(1).optional(),
     sortBy: z.enum(["createdAt", "name"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc")
-})
-
-//   id           String  @id @default(uuid()) @db.VarChar(36)
-//   name         String  @unique
-//   iconUrl      String?
-//   iconPublicId String?
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
+}) 

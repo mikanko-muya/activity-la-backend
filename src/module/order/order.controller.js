@@ -15,7 +15,11 @@ router.post(
     validate(createOrderSchema),
     asyncHandler(async (req, res) => {
         const data = await orderService.createOrder(req.user.id, req.body);
-        return sendSuccess(res, { statusCode: 201, message: "Order created successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 201,
+            message: "Order created successfully",
+            data
+             });
     })
 );
 
@@ -23,7 +27,37 @@ router.get(
     "/me",
     asyncHandler(async (req, res) => {
         const data = await orderService.getOrdersByUserId(req.user.id);
-        return sendSuccess(res, { statusCode: 200, message: "Orders fetched successfully", data });
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Orders fetched successfully",
+            data
+         });
+    })
+);
+
+router.get(
+    "/me/:id",
+    validate(orderIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await orderService.getOrderById(req.params.id, { actingUserId: req.user.id });
+        return sendSuccess(res, { 
+            statusCode: 200, 
+            message: "Order fetched successfully", 
+            data 
+         });
+    })
+);
+
+router.patch(
+    "/me/:id/cancel",
+    validate(orderIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await orderService.cancelOrder(req.params.id, { actingUserId: req.user.id });
+        return sendSuccess(res, { 
+            statusCode: 200, 
+            message: "Order cancelled successfully", 
+            data 
+        });
     })
 );
 
@@ -33,7 +67,12 @@ router.get(
     validate(getOrdersSchema, "query"),
     asyncHandler(async (req, res) => {
         const result = await orderService.getOrders(req.query);
-        return sendSuccess(res, { statusCode: 200, message: "Orders fetched successfully", data: result.data, meta: result.meta });
+        return sendSuccess(res, { 
+            statusCode: 200, 
+            message: "Orders fetched successfully", 
+            data: result.data, 
+            meta: result.meta 
+        });
     })
 );
 
@@ -43,7 +82,11 @@ router.get(
     validate(orderIdSchema, "params"),
     asyncHandler(async (req, res) => {
         const data = await orderService.getOrderById(req.params.id);
-        return sendSuccess(res, { statusCode: 200, message: "Order fetched successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 200,
+            message: "Order fetched successfully",
+            data
+             });
     })
 );
 
@@ -53,7 +96,11 @@ router.patch(
     validate(orderIdSchema, "params"),
     asyncHandler(async (req, res) => {
         const data = await orderService.cancelOrder(req.params.id);
-        return sendSuccess(res, { statusCode: 200, message: "Order cancelled successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 200,
+            message: "Order cancelled successfully", 
+            data
+         });
     })
 );
 
@@ -63,7 +110,11 @@ router.delete(
     validate(orderIdSchema, "params"),
     asyncHandler(async (req, res) => {
         const data = await orderService.deleteOrder(req.params.id);
-        return sendSuccess(res, { statusCode: 200, message: "Order deleted successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 200, 
+            message: "Order deleted successfully", 
+            data 
+        });
     })
 );
 

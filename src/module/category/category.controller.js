@@ -18,7 +18,11 @@ router.post(
     validate(createCategorySchema),
     asyncHandler(async (req, res) => {
         const data = await categoryService.createCategory(req.body, req.file);
-        return sendSuccess(res, { statusCode: 201, message: "Category created successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 201,
+             message: "Category created successfully",
+              data 
+            });
     })
 );
 
@@ -30,7 +34,11 @@ router.patch(
     validate(updateCategorySchema),
     asyncHandler(async (req, res) => {
         const data = await categoryService.updateCategory(req.params.id, req.body, req.file);
-        return sendSuccess(res, { statusCode: 200, message: "Category updated successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 200,
+             message: "Category updated successfully",
+              data
+             });
     })
 );
 
@@ -40,7 +48,11 @@ router.delete(
     validate(categoryIdSchema, "params"),
     asyncHandler(async (req, res) => {
         const data = await categoryService.deleteCategory(req.params.id);
-        return sendSuccess(res, { statusCode: 200, message: "Category deleted successfully", data });
+        return sendSuccess(res, { 
+            statusCode: 200,
+             message: "Category deleted successfully",
+              data
+             });
     })
 );
 
