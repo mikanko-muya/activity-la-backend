@@ -35,6 +35,18 @@ export const Permissions = {
         update: "coupon:update",
         delete: "coupon:delete",
     },
+    organizer: {
+        create : "organizer:create",
+        read : "organizer:read",
+        update : "organizer:update",
+        delete : "organizer:delete"
+    },
+    notification: {
+        create: "notification:create",
+        read: "notification:read",
+        update: "notification:update",
+        delete: "notification:delete",
+    },
 };
 
 const flatten = (group) => Object.values(group).flatMap((actions) => Object.values(actions));
@@ -45,6 +57,8 @@ const CONTENT_PERMISSIONS = flatten({
     coupon: Permissions.coupon,
     order: Permissions.order,
     venue: Permissions.venue,
+    organizer: Permissions.organizer,
+    notification: Permissions.notification,
 });
 
 const ALL_PERMISSIONS = flatten(Permissions);

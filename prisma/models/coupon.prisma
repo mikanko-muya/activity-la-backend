@@ -18,4 +18,5 @@ model Coupon {
 
   orders      Order[]
   redemptions CouponRedemption[]
+  notifications Notification[]
 }

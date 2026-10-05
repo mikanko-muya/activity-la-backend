@@ -1,28 +1,155 @@
+import { Router } from "express";
+
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { sendSuccess } from "../../utils/response.js";
+import { validate } from "../../middleware/validation.js";
+import { requirePermission } from "../../middleware/auth.js";
+import { Permissions } from "../../config/permissions.js";
+import { notificationService } from "./notification.service.js";
+import {
+    createNotificationSchema,
+    getMyNotificationsSchema,
+    getNotificationsSchema,
+    notificationIdSchema,
+} from "./notification.schema.js";
 
-export const getNotificationById = asyncHandler(async (req, res) => {
-  data = await notificationService.getNotificationById(req.params.id);
-  return sendSuccess(res, { statusCode: 200, message: "Notification fetched successfully", data });
-});
+const router = Router();
 
-export const getNotifications = asyncHandler(async (req, res) => {
-  data = await notificationService.getNotificationById(req.query);
-  return sendSuccess(res, { statusCode: 200, message: "Notifications fetched successfully", data, meta: date.meta });
-});
+router.get(
+    "/me",
+    validate(getMyNotificationsSchema, "query"),
+    asyncHandler(async (req, res) => {
+        const result = await notificationService.getMyNotifications(req.user.id, req.query);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notifications fetched successfully",
+            data: result.data,
+            meta: result.meta,
+        });
+    })
+);
 
-export const createNotification = asyncHandler(async (req, res) => {
-  data = await notificationService.createNotification(req.body, req.file);
-  return sendSuccess(res, { statusCode: 201, message: "Notification created successfully", data });
-});
+router.get(
+    "/me/unread-count",
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.getMyUnreadCount(req.user.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Unread count fetched successfully",
+            data,
+        });
+    })
+);
 
-export const updateNotification = asyncHandler(async (req, res) => {
-  data = await notificationService.updateNotification(req.params.id, req.body, req.file);
-  return sendSuccess(res, { statusCode: 200, message: "Notification updated successfully", data })
-});
+router.patch(
+    "/me/read-all",
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.markAllAsRead(req.user.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notifications marked as read",
+            data,
+        });
+    })
+);
 
-export const deleteNotification = asyncHandler(async (req, res) => {
-  data = await notificationService.deleteNotification(req.params.id);
-  return sendSuccess(res, { statusCode: 200, message: "Notification deleted successfully", data })
-});
+router.patch(
+    "/me/:id/read",
+    validate(notificationIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.markAsRead(req.params.id, {
+            actingUserId: req.user.id,
+        });
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notification marked as read",
+            data,
+        });
+    })
+);
 
+router.delete(
+    "/me/:id",
+    validate(notificationIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.deleteMyNotification(req.params.id, req.user.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notification deleted successfully",
+            data,
+        });
+    })
+);
+
+router.get(
+    "/",
+    requirePermission(Permissions.notification.read),
+    validate(getNotificationsSchema, "query"),
+    asyncHandler(async (req, res) => {
+        const result = await notificationService.getNotifications(req.query);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notifications fetched successfully",
+            data: result.data,
+            meta: result.meta,
+        });
+    })
+);
+
+router.post(
+    "/",
+    requirePermission(Permissions.notification.create),
+    validate(createNotificationSchema),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.createNotification(req.body);
+        return sendSuccess(res, {
+            statusCode: 201,
+            message: "Notification created successfully",
+            data,
+        });
+    })
+);
+
+router.get(
+    "/:id",
+    requirePermission(Permissions.notification.read),
+    validate(notificationIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.getNotificationById(req.params.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notification fetched successfully",
+            data,
+        });
+    })
+);
+
+router.patch(
+    "/:id/read",
+    requirePermission(Permissions.notification.update),
+    validate(notificationIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.markAsRead(req.params.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notification marked as read",
+            data,
+        });
+    })
+);
+
+router.delete(
+    "/:id",
+    requirePermission(Permissions.notification.delete),
+    validate(notificationIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.deleteNotification(req.params.id);
+        return sendSuccess(res, {
+            statusCode: 200,
+            message: "Notification deleted successfully",
+            data,
+        });
+    })
+);
+
+export default router;

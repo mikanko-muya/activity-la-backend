@@ -1,9 +1,10 @@
 import { Prisma } from "@prisma/client";
 
-import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../../utils/errors/index.js";
 import { buildMeta } from "../../utils/pagination.js";
 import { prisma } from "../../config/prisma.config.js";
 import { normalizeCouponCode } from "../../utils/couponCode.js";
+import { notificationService } from "../notification/notification.service.js";
 import { orderRepository } from "./order.repository.js";
 
 const assertRelationsExist = async (input) => {
@@ -41,13 +42,9 @@ const calculateDiscount = (coupon, subtotalAmount) => {
     const discount =
         coupon.discountType === "PERCENTAGE" ? subtotal.mul(discountValue).div(100) : discountValue;
 
-    // Never discount more than the order is worth.
     return Prisma.Decimal.min(discount, subtotal).toDecimalPlaces(2);
 };
 
-// Mirrors couponService.assertCouponUsable: every reason a coupon cannot be used,
-// each with its own message. The previous version checked only isActive and
-// per-user use, so an expired or fully-redeemed coupon still applied.
 const assertCouponUsable = async (coupon, userId) => {
     if (!coupon) throw new NotFoundError("Coupon not found");
 
@@ -69,8 +66,6 @@ const assertCouponUsable = async (coupon, userId) => {
 const assertEventValid = (event) => {
     if (!event) throw new NotFoundError("Event not found");
 
-    // The column is eventStatus. This read `event.status`, which is always
-    // undefined, so the comparison never matched and every event was rejected.
     if (event.eventStatus !== "PUBLISHED") {
         throw new BadRequestError("Event is not available");
     }
@@ -91,14 +86,17 @@ const assertTicketTypeValid = async (eventId, ticketTypeId) => {
     return ticketType;
 };
 
-// A PENDING order holds ticket stock and a coupon redemption. Both are released
-// when it is cancelled, so the window cannot be indefinite.
 const RESERVATION_MINUTES = 15;
 
 export const orderService = {
-    async getOrderById(id) {
+    async getOrderById(id, { actingUserId } = {}) {
         const order = await orderRepository.findById(id);
         if (!order) throw new NotFoundError("Order not found");
+
+        if (actingUserId && order.userId !== actingUserId) {
+            throw new ForbiddenError("You do not have permission");
+        }
+
         return order;
     },
 
@@ -126,9 +124,6 @@ export const orderService = {
         const discountTotalAmount = calculateDiscount(coupon, subtotalAmount);
         const totalAmount = subtotalAmount.sub(discountTotalAmount).toDecimalPlaces(2);
 
-        // One transaction: stock, order, items and the coupon redemption either all
-        // happen or none do. A crash between any two of them would otherwise leave
-        // stock held by no order, or a coupon consumed for an order that failed.
         const order = await prisma.$transaction(async (tx) => {
             const reserved = await orderRepository.reserveTicketQuantity(
                 tx,
@@ -156,8 +151,6 @@ export const orderService = {
                 subtotal: subtotalAmount,
             });
 
-            // The redemption row was never written before, so the per-user unique
-            // constraint had nothing to act on and a coupon could be reused.
             if (coupon) {
                 try {
                     await orderRepository.createRedemption(tx, {
@@ -166,8 +159,6 @@ export const orderService = {
                         orderId: createdOrder.id,
                     });
                 } catch (error) {
-                    // P2002 means another checkout redeemed it between our check and
-                    // this insert. The constraint is the real guard; translate it.
                     if (error?.code === "P2002") {
                         throw new ConflictError("You have already used this coupon");
                     }
@@ -180,19 +171,30 @@ export const orderService = {
             return createdOrder;
         });
 
+        await notificationService.notifyUserSafely({
+            userId,
+            orderId: order.id,
+            notifType: "PAYMENT",
+            title: "Order placed",
+            message:
+                `Your order for "${event.title}" is reserved for ${RESERVATION_MINUTES} minutes. ` +
+                `Pay ${totalAmount.toFixed(2)} to confirm your tickets.`,
+        });
+
         return orderRepository.findById(order.id);
     },
 
-    // Releases everything the order was holding. `id` was named `orderId`
-    // throughout this body while the parameter was `id`, so every reference threw
-    // a ReferenceError and cancelling was impossible.
-    async cancelOrder(id) {
+    async cancelOrder(id, { actingUserId } = {}) {
         const order = await orderRepository.findById(id);
         if (!order) throw new NotFoundError("Order not found");
 
+        if (actingUserId && order.userId !== actingUserId) {
+            throw new ForbiddenError("You do not have permission");
+        }
+
         if (order.status !== "PENDING") throw new BadRequestError("Order cannot be cancelled");
 
-        return prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx) => {
             const updated = await orderRepository.cancelOrder(tx, id);
             if (updated.count !== 1) throw new BadRequestError("Order cannot be cancelled");
 
@@ -200,16 +202,23 @@ export const orderService = {
                 await orderRepository.releaseTicketQuantity(tx, item.ticketId, item.quantity);
             }
 
-            // Deleting the redemption hands the coupon back to the user. This is
-            // why the ledger is a separate table: release is one DELETE, and the
-            // order record itself is untouched.
             if (order.couponId) {
                 await orderRepository.deleteRedemptionByOrderId(tx, id);
                 await orderRepository.decrementCouponUsage(tx, order.couponId);
             }
-
-            return orderRepository.findById(id);
         });
+
+        await notificationService.notifyUserSafely({
+            userId: order.userId,
+            orderId: order.id,
+            notifType: "PAYMENT",
+            title: "Order cancelled",
+            message:
+                `Your order for "${order.event.title}" has been cancelled and the tickets released.` +
+                (order.couponId ? " Your coupon is available to use again." : ""),
+        });
+
+        return orderRepository.findById(id);
     },
 
     async deleteOrder(id) {
