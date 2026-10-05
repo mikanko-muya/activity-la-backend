@@ -85,9 +85,6 @@ export const orderRepository = {
             })
         ),
 
-    // usedCount is the cheap authority for the total-uses limit; the redemption
-    // rows are the per-user one. Both move inside the order transaction so they
-    // cannot disagree.
     incrementCouponUsage: (tx, couponId) =>
         tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } }),
 
@@ -102,20 +99,9 @@ export const orderRepository = {
 
     delete: (id) => prisma.order.delete({ where: { id } }),
 
-    // Records the redemption inside the caller's transaction. The
-    // @@unique([couponId, userId]) on CouponRedemption is what actually stops a
-    // second redemption: two concurrent checkouts both pass a read-time check,
-    // and only the constraint rejects the loser with P2002.
     createRedemption: (tx, { couponId, userId, orderId }) =>
         tx.couponRedemption.create({ data: { couponId, userId, orderId } }),
 
-    // Atomic, conditional increment - the same shape as the coupon usage guard.
-    // TicketType.quantity is the fixed capacity and saleQuantity is how many have
-    // sold, so a sale increments saleQuantity rather than eating into capacity.
-    //
-    // Raw SQL because the guard compares two columns (saleQuantity against
-    // quantity) and a Prisma `where` cannot reference another column. Reading
-    // then writing would race: two buyers both see room for the last ticket.
     reserveTicketQuantity: async (tx, ticketTypeId, quantity) => {
         const affected = await tx.$executeRaw`
             UPDATE \`TicketType\`
