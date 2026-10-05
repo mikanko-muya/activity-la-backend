@@ -12,7 +12,7 @@ router.get(
     "/",
     validate(getEventsSchema, "query"),
     asyncHandler(async (req, res) => {
-        const result = await eventService.getEvents(req.query);
+        const result = await eventService.getPublicEvents(req.query);
         return sendSuccess(res, { statusCode: 200, message: "Events retrieved successfully", data: result.data, meta: result.meta });
     })
 );
@@ -22,7 +22,7 @@ router.get(
     validate(categoryIdParamSchema, "params"),
     validate(getEventsSchema, "query"),
     asyncHandler(async (req, res) => {
-        const result = await eventService.getEventsByCategory(req.params.categoryId, req.query);
+        const result = await eventService.getPublicEventsByCategory(req.params.categoryId, req.query);
         return sendSuccess(res, { statusCode: 200, message: "Events retrieved successfully", data: result.data, meta: result.meta });
     })
 );
@@ -31,7 +31,7 @@ router.get(
     "/:id",
     validate(eventIdSchema, "params"),
     asyncHandler(async (req, res) => {
-        const data = await eventService.getEventById(req.params.id);
+        const data = await eventService.getPublicEventById(req.params.id);
         return sendSuccess(res, { statusCode: 200, message: "Event retrieved successfully", data });
     })
 );

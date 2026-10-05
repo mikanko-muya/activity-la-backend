@@ -19,6 +19,8 @@ const assertRelationsExist = async (input) => {
     if (wanted.categoryId && !category) throw new NotFoundError("Category not found");
 };
 
+const PUBLIC_EVENT_STATUS = "PUBLISHED";
+
 export const eventService = {
     async getEventById(id) {
         const event = await eventRepository.findById(id);
@@ -36,6 +38,25 @@ export const eventService = {
         if (!category) throw new NotFoundError("Category not found");
 
         return eventService.getEvents({ ...query, categoryId });
+    },
+
+    async getPublicEvents(query) {
+        return eventService.getEvents({ ...query, eventStatus: PUBLIC_EVENT_STATUS });
+    },
+
+    async getPublicEventsByCategory(categoryId, query) {
+        const category = await categoryRepository.findById(categoryId);
+        if (!category) throw new NotFoundError("Category not found");
+
+        return eventService.getPublicEvents({ ...query, categoryId });
+    },
+
+    async getPublicEventById(id) {
+        const event = await eventRepository.findById(id);
+        if (!event || event.eventStatus !== PUBLIC_EVENT_STATUS) {
+            throw new NotFoundError("Event not found");
+        }
+        return event;
     },
 
     async createEvent(input, file) {

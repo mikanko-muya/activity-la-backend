@@ -1,7 +1,7 @@
 import { prisma } from "../../config/prisma.config.js";
 
 const include = {
-    organizer: true,
+    organizer: { select: { id: true, name: true, logoUrl: true } },
     venue: true,
     category: true,
 };
