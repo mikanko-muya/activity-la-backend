@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `coupon` ADD COLUMN `eventId` VARCHAR(191) NOT NULL;
+ALTER TABLE `Coupon` ADD COLUMN `eventId` VARCHAR(191) NOT NULL;
 
 -- AddForeignKey
 ALTER TABLE `Coupon` ADD CONSTRAINT `Coupon_eventId_fkey` FOREIGN KEY (`eventId`) REFERENCES `Event`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

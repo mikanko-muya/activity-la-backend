@@ -18,25 +18,25 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `eventbanner` DROP FOREIGN KEY `EventBanner_organizerId_fkey`;
+ALTER TABLE `EventBanner` DROP FOREIGN KEY `EventBanner_organizerId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `notification` DROP FOREIGN KEY `Notification_eventId_fkey`;
+ALTER TABLE `Notification` DROP FOREIGN KEY `Notification_eventId_fkey`;
 
 -- DropIndex
-DROP INDEX `EventBanner_organizerId_fkey` ON `eventbanner`;
+DROP INDEX `EventBanner_organizerId_fkey` ON `EventBanner`;
 
 -- DropIndex
-DROP INDEX `Notification_eventId_fkey` ON `notification`;
+DROP INDEX `Notification_eventId_fkey` ON `Notification`;
 
 -- AlterTable
-ALTER TABLE `event` DROP COLUMN `coverImagePublicId`,
+ALTER TABLE `Event` DROP COLUMN `coverImagePublicId`,
     DROP COLUMN `coverImageUrl`,
     ADD COLUMN `coverImgUrl` VARCHAR(191) NULL,
     MODIFY `isFree` BOOLEAN NOT NULL DEFAULT false;
 
 -- AlterTable
-ALTER TABLE `eventbanner` DROP COLUMN `bannerType`,
+ALTER TABLE `EventBanner` DROP COLUMN `bannerType`,
     DROP COLUMN `coverImgUrl`,
     DROP COLUMN `endAt`,
     DROP COLUMN `endDate`,
@@ -47,10 +47,10 @@ ALTER TABLE `eventbanner` DROP COLUMN `bannerType`,
     ADD COLUMN `imageUrl` VARCHAR(191) NOT NULL;
 
 -- AlterTable
-ALTER TABLE `notification` MODIFY `eventId` VARCHAR(191) NULL;
+ALTER TABLE `Notification` MODIFY `eventId` VARCHAR(191) NULL;
 
 -- AlterTable
-ALTER TABLE `order` MODIFY `subtotalAmount` DECIMAL(10, 2) NOT NULL,
+ALTER TABLE `Order` MODIFY `subtotalAmount` DECIMAL(10, 2) NOT NULL,
     MODIFY `discountTotalAmount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
     MODIFY `totalAmount` DECIMAL(10, 2) NOT NULL;
 

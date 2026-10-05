@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `coupon` DROP COLUMN `isUsed`;
+ALTER TABLE `Coupon` DROP COLUMN `isUsed`;
 
 -- CreateTable
 CREATE TABLE `CouponUsage` (
