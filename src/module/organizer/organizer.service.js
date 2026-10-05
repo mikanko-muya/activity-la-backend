@@ -1,29 +1,51 @@
 import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
+import { buildMeta } from "../../utils/pagination.js";
 import { organizerRepository } from "./organizer.repository.js"
 
+const paginated = (result, query) => ({
+  data: result.data,
+  meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
+});
+
+const assertEmailAvailable = async (email, currentId) => {
+  if (!email) return;
+
+  const existing = await organizerRepository.findByEmail(email);
+  if (existing && existing.id !== currentId) {
+    throw new ConflictError("An organizer with this email already exists");
+  }
+};
+
+const asConflict = (error) =>
+  error?.code === "P2002"
+    ? new ConflictError("An organizer with this email already exists")
+    : error;
+
 export const organizerService = {
-  async getorganizerById(id) {
+  async getOrganizerById(id) {
     const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("organizer not found");
+    if (!organizer) throw new NotFoundError("Organizer not found");
     return organizer;
   },
 
-  async getorganizers(query) {
-    const result = await organizerRepository.findMany(query);
-    return {
-      data: result.data,
-      meta: {
-        total: result.total,
-        page: query.page,
-        limit: query.limit,
-        totalPages: Math.ceil(result.total / query.limit),
-      },
-    };
+  async getOrganizers(query) {
+    return paginated(await organizerRepository.findMany(query), query);
   },
 
-  async createorganizer(input, file) {
-    
+  async getPublicOrganizerById(id) {
+    const organizer = await organizerRepository.findByIdPublic(id);
+    if (!organizer) throw new NotFoundError("Organizer not found");
+    return organizer;
+  },
+
+  async getPublicOrganizers(query) {
+    return paginated(await organizerRepository.findManyPublic(query), query);
+  },
+
+  async createOrganizer(input, file) {
+    await assertEmailAvailable(input.email);
+
     let uploadImage = null;
     if (file) {
       uploadImage = await uploadImageBufferToCloudinary(file.buffer, "organizers");
@@ -39,24 +61,26 @@ export const organizerService = {
       if (uploadImage?.publicId) {
         try {
           await deleteImageFromCloudinary(uploadImage.publicId);
-        } catch (err) {
-          console.error("Failed to rollback uploaded image: ", err.message);
+        } catch (rollbackErr) {
+          console.error("Failed to rollback uploaded image: ", rollbackErr.message);
         }
       }
 
-      throw err;
+      throw asConflict(err);
     }
 
     return organizer;
   },
 
-  async updateorganizer(id, input, file) {
+  async updateOrganizer(id, input, file) {
     const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("organizer not found");
+    if (!organizer) throw new NotFoundError("Organizer not found");
 
     if ((!input || Object.keys(input).length === 0) && !file) {
       throw new BadRequestError("At least one Change is required to update")
     }
+
+    await assertEmailAvailable(input?.email, id);
 
     let uploadImage = null
     if (file) {
@@ -73,12 +97,12 @@ export const organizerService = {
       if (uploadImage?.publicId) {
         try {
           await deleteImageFromCloudinary(uploadImage.publicId)
-        } catch (err) {
-          console.error("Failed to rollback uploaded image: ", err.message);
+        } catch (rollbackErr) {
+          console.error("Failed to rollback uploaded image: ", rollbackErr.message);
         }
       }
 
-      throw err;
+      throw asConflict(err);
     }
 
     if (file && organizer.logoPublicId) {
@@ -91,13 +115,25 @@ export const organizerService = {
     return updatedOrganizer;
   },
 
-  async deleteorganizer(id) {
+  async deleteOrganizer(id) {
     const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("organizer not found");
+    if (!organizer) throw new NotFoundError("Organizer not found");
+
+    const eventCount = await organizerRepository.countEvents(id);
+    if (eventCount > 0) {
+      throw new ConflictError(`Organizer still has ${eventCount} event(s)`);
+    }
 
     const deletedOrganizer = await organizerRepository.delete(id);
 
+    if (organizer.logoPublicId) {
+      try {
+        await deleteImageFromCloudinary(organizer.logoPublicId);
+      } catch (err) {
+        console.error("Failed to delete logo image:", err.message);
+      }
+    }
+
     return deletedOrganizer;
   },
-
 };
