@@ -5,58 +5,69 @@ export const ticketTypeIdSchema = z.object({
     id: z.string().uuid("Invalid ticketType id format"),
 });
 
-export const getTicketTypesSchema = z.object({
+export const eventIdParamSchema = z.object({
+    eventId: z.string().uuid("Invalid event id format"),
+});
+
+const listFields = {
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
     search: z.string().trim().optional(),
-    status: z.enum(TicketTypeStatus).optional(),
     eventId: z.string().uuid("Invalid event id format").optional(),
-    sortBy: z.enum(["createdAt", "name", "price", "saleStart"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
+};
+
+export const getTicketTypesSchema = z.object({
+    ...listFields,
+    status: z.enum(TicketTypeStatus).optional(),
+    sortBy: z.enum(["createdAt", "name", "price", "saleStart", "quantity"]).default("createdAt"),
 });
+
+export const getPublicTicketTypesSchema = z.object({
+    ...listFields,
+    sortBy: z.enum(["price", "name", "saleStart", "createdAt"]).default("price"),
+    sortOrder: z.enum(["asc", "desc"]).default("asc"),
+});
+
+const saleWindowIsOrdered = (data) =>
+    !data.saleStart || !data.saleEnd || data.saleEnd > data.saleStart;
+
+const saleWindowError = {
+    message: "saleEnd must be later than saleStart",
+    path: ["saleEnd"],
+};
 
 export const createTicketTypeSchema = z
     .object({
         name: z.string().trim().min(1, "Name is required"),
         description: z.string().trim().optional(),
-        satatus: z.enum(TicketTypeStatus).default("ACTIVE"),
-        price: z.coerce.number("Price must be a number").positive("Price must be greater than 0"),
-        quantity: z.coerce.number("Quantity must be a number").int().positive("Quantity must be greater than 0"),
-        saleStart: z.string().optional().pipe(z.coerce.date("Invalid date format")),
-        saleEnd: z.string().optional().pipe(z.coerce.date("Invalid date format")),
+        status: z.enum(TicketTypeStatus).default(TicketTypeStatus.ACTIVE),
+        price: z.coerce.number("Price must be a number").min(0, "Price cannot be negative"),
+        quantity: z.coerce
+            .number("Quantity must be a number")
+            .int("Quantity must be an integer")
+            .positive("Quantity must be greater than 0"),
+        saleStart: z.coerce.date("Invalid date format").optional(),
+        saleEnd: z.coerce.date("Invalid date format").optional(),
         eventId: z.string().uuid("Invalid event id format"),
     })
-    .refine(
-        (data) => {
-            if (!data.saleStart || !data.saleEnd) return true;
+    .refine(saleWindowIsOrdered, saleWindowError);
 
-            return data.saleEnd > data.saleStart;
-        },
-        {
-            message: "saleEnd must be later than saleStart",
-            path: ["saleEnd"],
-        },
-    );
-
-export const updateticketTypeSchema = z
+export const updateTicketTypeSchema = z
     .object({
-        name: z.string().trim().optional(),
+        name: z.string().trim().min(1, "Name is required").optional(),
         description: z.string().trim().optional(),
-        satatus: z.enum(TicketTypeStatus).optional(),
-        price: z.coerce.number("Price must be a number").positive("Price must be greater than 0").optional(),
-        quantity: z.coerce.number("Quantity must be a number").int().positive("Quantity must be greater than 0").optional(),
-        saleStart: z.string().optional().pipe(z.coerce.date("Invalid date format")),
-        saleEnd: z.string().optional().pipe(z.coerce.date("Invalid date format")),
-        eventId: z.string().uuid("Invalid event id format").optional(),
+        status: z.enum(TicketTypeStatus).optional(),
+        price: z.coerce.number("Price must be a number").min(0, "Price cannot be negative").optional(),
+        quantity: z.coerce
+            .number("Quantity must be a number")
+            .int("Quantity must be an integer")
+            .positive("Quantity must be greater than 0")
+            .optional(),
+        saleStart: z.coerce.date("Invalid date format").optional(),
+        saleEnd: z.coerce.date("Invalid date format").optional(),
     })
-    .refine(
-        (data) => {
-            if (!data.saleStart || !data.saleEnd) return true;
-
-            return data.saleEnd > data.saleStart;
-        },
-        {
-            message: "saleEnd must be later than saleStart",
-            path: ["saleEnd"],
-        },
-    );
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "At least one field is required to update",
+    })
+    .refine(saleWindowIsOrdered, saleWindowError);

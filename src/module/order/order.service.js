@@ -83,6 +83,14 @@ const assertTicketTypeValid = async (eventId, ticketTypeId) => {
         throw new BadRequestError(`${ticketType.name} is not available`);
     }
 
+    const now = new Date();
+    if (ticketType.saleStart && now < ticketType.saleStart) {
+        throw new BadRequestError(`${ticketType.name} is not on sale yet`);
+    }
+    if (ticketType.saleEnd && now > ticketType.saleEnd) {
+        throw new BadRequestError(`${ticketType.name} is no longer on sale`);
+    }
+
     return ticketType;
 };
 
