@@ -9,6 +9,7 @@ export const Permissions = {
         assignRole: "user:assign-role",
     },
     event: {
+        read: "event:read",
         create: "event:create",
         update: "event:update",
         delete: "event:delete",

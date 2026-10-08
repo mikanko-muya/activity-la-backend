@@ -7,9 +7,32 @@ import { requirePermission } from "../../middleware/auth.js";
 import { Permissions } from "../../config/permissions.js";
 import { upload } from "../../middleware/multer.js";
 import { eventService } from "./event.service.js";
-import { createEventSchema, eventIdSchema, updateEventSchema } from "./event.schema.js";
+import { createEventSchema, eventIdSchema, getEventsSchema, updateEventSchema } from "./event.schema.js";
 
 const router = Router();
+
+// The admin list is not the public one: it takes eventStatus from the query
+// instead of pinning PUBLISHED, because an admin has to find a draft to
+// publish it and a cancelled event to explain it.
+router.get(
+    "/",
+    requirePermission(Permissions.event.read),
+    validate(getEventsSchema, "query"),
+    asyncHandler(async (req, res) => {
+        const result = await eventService.getEvents(req.query);
+        return sendSuccess(res, { statusCode: 200, message: "Events retrieved successfully", data: result.data, meta: result.meta });
+    })
+);
+
+router.get(
+    "/:id",
+    requirePermission(Permissions.event.read),
+    validate(eventIdSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await eventService.getEventById(req.params.id);
+        return sendSuccess(res, { statusCode: 200, message: "Event retrieved successfully", data });
+    })
+);
 
 router.post(
     "/",
