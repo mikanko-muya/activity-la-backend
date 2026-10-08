@@ -19,6 +19,16 @@ import {
 
 const router = Router();
 
+// Self-service, so no permission: a customer reads their own row. It must be
+// declared before GET /:id or "me" would be validated as a uuid and rejected.
+router.get(
+    "/me",
+    asyncHandler(async (req, res) => {
+        const data = await userService.getUserById(req.user.id);
+        return sendSuccess(res, { statusCode: 200, message: "Profile fetched successfully", data });
+    })
+);
+
 router.patch(
     "/me",
     upload.single("profile"),

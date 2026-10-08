@@ -4,7 +4,7 @@ import { sendSuccess } from "../../utils/response.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { validate } from "../../middleware/validation.js";
 import { authService } from "./auth.service.js";
-import { forgotPasswordSchema, loginSchema, registerSchema } from "./auth.schema.js";
+import { forgotPasswordSchema, loginSchema, refreshTokenSchema, registerSchema } from "./auth.schema.js";
 
 const router = Router();
 
@@ -23,6 +23,26 @@ router.post(
     asyncHandler(async (req, res) => {
         const data = await authService.login(req.body);
         return sendSuccess(res, { statusCode: 200, message: "Login successful", data });
+    })
+);
+
+// Both carry no authenticate: the access token they exist to replace is
+// expected to be expired by the time a client calls refresh.
+router.post(
+    "/refresh",
+    validate(refreshTokenSchema),
+    asyncHandler(async (req, res) => {
+        const data = await authService.refreshSession(req.body);
+        return sendSuccess(res, { statusCode: 200, message: "Session refreshed", data });
+    })
+);
+
+router.post(
+    "/logout",
+    validate(refreshTokenSchema),
+    asyncHandler(async (req, res) => {
+        const data = await authService.logout(req.body);
+        return sendSuccess(res, { statusCode: 200, message: "Signed out successfully", data });
     })
 );
 

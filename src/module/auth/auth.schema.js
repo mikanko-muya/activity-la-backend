@@ -16,3 +16,7 @@ export const forgotPasswordSchema = z.object({
     phone: z.string().trim().min(1, "Phone is required"),
     newPassword: z.string().trim().min(8, "New password must be at least 8 characters")
 })
+
+export const refreshTokenSchema = z.object({
+    refreshToken: z.string().trim().min(1, "Refresh token is required")
+})

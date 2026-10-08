@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { randomUUID } from "node:crypto";
+
 import jwt from "jsonwebtoken";
 
 import { JWT_SECRET, JWT_REFRESH_SECRET } from "../config/globalkey.js";
@@ -53,11 +55,17 @@ const verify = (token, secret, typ) => {
     return decoded;
 };
 
+// jti on both kinds, for the reason spelled out below: two tokens minted in the
+// same second with the same payload would otherwise be the same string.
 export const generateAccessToken = (payload) =>
-    sign(payload, JWT_SECRET, ACCESS, ACCESS_TOKEN_TTL);
+    sign({ ...payload, jti: randomUUID() }, JWT_SECRET, ACCESS, ACCESS_TOKEN_TTL);
 
+// A JWT is a pure function of its payload and secret, and iat/exp only have
+// second resolution, so logging in and refreshing within the same second
+// produced byte-identical tokens - and storing the second refresh token hit the
+// tokenHash unique constraint.
 export const generateRefreshToken = (payload) =>
-    sign(payload, JWT_REFRESH_SECRET, REFRESH, REFRESH_TOKEN_TTL);
+    sign({ ...payload, jti: randomUUID() }, JWT_REFRESH_SECRET, REFRESH, REFRESH_TOKEN_TTL);
 
 export const verifyAccessToken = (token) => verify(token, JWT_SECRET, ACCESS);
 

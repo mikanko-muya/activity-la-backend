@@ -16,4 +16,5 @@ model User {
   notifications    Notification[]
   orderHistories   OrderHistory[]
   couponRedemptions CouponRedemption[]
+  refreshTokens     RefreshToken[]
 }
