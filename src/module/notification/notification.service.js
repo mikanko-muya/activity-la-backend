@@ -1,11 +1,9 @@
 import { NotFoundError } from "../../utils/errors/index.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { notificationRepository } from "./notification.repository.js";
 
-const paginated = (result, query) => ({
-    data: result.data,
-    meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-});
+const checkExist = checkExistBy(notificationRepository.findById, "Notification");
 
 const assertRelationsExist = async ({ userId, eventId, orderId, couponId }) => {
     const { user, event, order, coupon } = await notificationRepository.findRelations({
@@ -24,7 +22,7 @@ const assertRelationsExist = async ({ userId, eventId, orderId, couponId }) => {
 export const notificationService = {
     async getMyNotifications(userId, query) {
         const result = await notificationRepository.findMany({ ...query, userId });
-        return paginated(result, query);
+        return toPaginated(result, query);
     },
 
     async getMyUnreadCount(userId) {
@@ -33,8 +31,7 @@ export const notificationService = {
 
     async markAsRead(id, { actingUserId } = {}) {
         if (!actingUserId) {
-            const notification = await notificationRepository.findById(id);
-            if (!notification) throw new NotFoundError("Notification not found");
+            await checkExist(id);
 
             return notificationRepository.markAsRead(id);
         }
@@ -65,14 +62,11 @@ export const notificationService = {
 
     async getNotifications(query) {
         const result = await notificationRepository.findMany(query, { withUser: true });
-        return paginated(result, query);
+        return toPaginated(result, query);
     },
 
     async getNotificationById(id) {
-        const notification = await notificationRepository.findById(id);
-        if (!notification) throw new NotFoundError("Notification not found");
-
-        return notification;
+        return checkExist(id);
     },
 
     async createNotification(input) {
@@ -101,8 +95,7 @@ export const notificationService = {
     },
 
     async deleteNotification(id) {
-        const notification = await notificationRepository.findById(id);
-        if (!notification) throw new NotFoundError("Notification not found");
+        await checkExist(id);
 
         return notificationRepository.delete(id);
     },

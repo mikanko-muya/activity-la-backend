@@ -1,10 +1,25 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
     organizer: { select: { id: true, name: true, logoUrl: true } },
     venue: true,
     category: true,
 };
+
+const buildWhere = (query) => ({
+    ...(query.categoryId && { categoryId: query.categoryId }),
+    ...(query.organizerId && { organizerId: query.organizerId }),
+    ...(query.venueId && { venueId: query.venueId }),
+    ...(query.eventStatus && { eventStatus: query.eventStatus }),
+    ...(query.isFree !== undefined && { isFree: query.isFree }),
+    ...(query.search && {
+        OR: [
+            { title: { contains: query.search } },
+            { description: { contains: query.search } },
+        ],
+    }),
+});
 
 export const eventRepository = {
     create: (data) => prisma.event.create({ data, include }),
@@ -21,28 +36,14 @@ export const eventRepository = {
         return { organizer, venue, category };
     },
 
-    findMany: async ({ page, limit, search, categoryId, organizerId, venueId, eventStatus, isFree, sortBy, sortOrder }) => {
-        const where = {
-            ...(categoryId && { categoryId }),
-            ...(organizerId && { organizerId }),
-            ...(venueId && { venueId }),
-            ...(eventStatus && { eventStatus }),
-            ...(isFree !== undefined && { isFree }),
-            ...(search && {
-                OR: [
-                    { title: { contains: search } },
-                    { description: { contains: search } },
-                ],
-            }),
-        };
+    findMany: async (query) => {
+        const where = buildWhere(query);
 
         const [data, total] = await prisma.$transaction([
             prisma.event.findMany({
                 where,
                 include,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { [sortBy]: sortOrder },
+                ...paginateArgs(query),
             }),
             prisma.event.count({ where }),
         ]);

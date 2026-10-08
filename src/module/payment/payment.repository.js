@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
     order: {
@@ -13,6 +14,13 @@ const include = {
     },
 };
 
+const buildWhere = (query) => ({
+    ...(query.status && { status: query.status }),
+    ...(query.method && { method: query.method }),
+    ...(query.orderId && { orderId: query.orderId }),
+    ...(query.userId && { order: { userId: query.userId } }),
+});
+
 export const paymentRepository = {
     create: (data) => prisma.payment.create({ data, include }),
 
@@ -22,20 +30,13 @@ export const paymentRepository = {
         prisma.payment.findUnique({ where: { transactionRef }, include }),
 
     findMany: async (query) => {
-        const where = {
-            ...(query.status && { status: query.status }),
-            ...(query.method && { method: query.method }),
-            ...(query.orderId && { orderId: query.orderId }),
-            ...(query.userId && { order: { userId: query.userId } }),
-        };
+        const where = buildWhere(query);
 
         const [data, total] = await prisma.$transaction([
             prisma.payment.findMany({
                 where,
                 include,
-                skip: (query.page - 1) * query.limit,
-                take: query.limit,
-                orderBy: { [query.sortBy]: query.sortOrder },
+                ...paginateArgs(query),
             }),
             prisma.payment.count({ where }),
         ]);

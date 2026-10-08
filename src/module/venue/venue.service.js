@@ -1,24 +1,16 @@
-import { NotFoundError } from "../../utils/errors/index.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { venueRepository } from "./venue.repository.js";
+
+const checkExist = checkExistBy(venueRepository.findById, "Venue");
 
 export const venueService = {
     async getVenueById(id) {
-        const venue = await venueRepository.findById(id);
-        if (!venue) throw new NotFoundError("Venue not found");
-        return venue;
+        return checkExist(id);
     },
 
     async getVenues(query) {
-        const result = await venueRepository.findMany(query);
-        return {
-            data: result.data,
-            meta: {
-                total: result.total,
-                page: query.page,
-                limit: query.limit,
-                totalPages: Math.ceil(result.total / query.limit),
-            }
-        }
+        return toPaginated(await venueRepository.findMany(query), query);
     },
 
     async createVenue(input) {
@@ -27,16 +19,14 @@ export const venueService = {
     },
 
     async updateVenue(id, input) {
-        const venue = await venueRepository.findById(id);
-        if (!venue) throw new NotFoundError("Venue not found");
+        await checkExist(id);
 
         const updatedVenue = await venueRepository.update(id, input)
         return updatedVenue;
     },
 
     async deleteVenue(id) {
-        const venue = await venueRepository.findById(id);
-        if (!venue) throw new NotFoundError("Venue not found");
+        await checkExist(id);
 
         const deletedVenue = await venueRepository.delete(id);
         return deletedVenue;

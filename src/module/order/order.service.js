@@ -1,11 +1,14 @@
 import { Prisma } from "@prisma/client";
 
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../../utils/errors/index.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { prisma } from "../../config/prisma.config.js";
 import { normalizeCouponCode } from "../../utils/couponCode.js";
 import { notificationService } from "../notification/notification.service.js";
 import { orderRepository } from "./order.repository.js";
+
+const checkExist = checkExistBy(orderRepository.findById, "Order");
 
 const assertRelationsExist = async (input) => {
     const wanted = {
@@ -98,8 +101,7 @@ const RESERVATION_MINUTES = 15;
 
 export const orderService = {
     async getOrderById(id, { actingUserId } = {}) {
-        const order = await orderRepository.findById(id);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkExist(id);
 
         if (actingUserId && order.userId !== actingUserId) {
             throw new ForbiddenError("You do not have permission");
@@ -113,11 +115,7 @@ export const orderService = {
     },
 
     async getOrders(query) {
-        const result = await orderRepository.findMany(query);
-        return {
-            data: result.data,
-            meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-        };
+        return toPaginated(await orderRepository.findMany(query), query);
     },
 
     async createOrder(userId, input) {
@@ -193,8 +191,7 @@ export const orderService = {
     },
 
     async cancelOrder(id, { actingUserId } = {}) {
-        const order = await orderRepository.findById(id);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkExist(id);
 
         if (actingUserId && order.userId !== actingUserId) {
             throw new ForbiddenError("You do not have permission");
@@ -230,8 +227,7 @@ export const orderService = {
     },
 
     async deleteOrder(id) {
-        const order = await orderRepository.findById(id);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkExist(id);
 
         if (order.status === "PENDING") {
             throw new BadRequestError("Pending order cannot be deleted");

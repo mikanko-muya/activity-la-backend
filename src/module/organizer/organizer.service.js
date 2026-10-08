@@ -1,12 +1,11 @@
-import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
+import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { organizerRepository } from "./organizer.repository.js"
 
-const paginated = (result, query) => ({
-  data: result.data,
-  meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-});
+const checkExist = checkExistBy(organizerRepository.findById, "Organizer");
+const checkPublicExist = checkExistBy(organizerRepository.findByIdPublic, "Organizer");
 
 const assertEmailAvailable = async (email, currentId) => {
   if (!email) return;
@@ -24,23 +23,19 @@ const asConflict = (error) =>
 
 export const organizerService = {
   async getOrganizerById(id) {
-    const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("Organizer not found");
-    return organizer;
+    return checkExist(id);
   },
 
   async getOrganizers(query) {
-    return paginated(await organizerRepository.findMany(query), query);
+    return toPaginated(await organizerRepository.findMany(query), query);
   },
 
   async getPublicOrganizerById(id) {
-    const organizer = await organizerRepository.findByIdPublic(id);
-    if (!organizer) throw new NotFoundError("Organizer not found");
-    return organizer;
+    return checkPublicExist(id);
   },
 
   async getPublicOrganizers(query) {
-    return paginated(await organizerRepository.findManyPublic(query), query);
+    return toPaginated(await organizerRepository.findManyPublic(query), query);
   },
 
   async createOrganizer(input, file) {
@@ -73,8 +68,7 @@ export const organizerService = {
   },
 
   async updateOrganizer(id, input, file) {
-    const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("Organizer not found");
+    const organizer = await checkExist(id);
 
     if ((!input || Object.keys(input).length === 0) && !file) {
       throw new BadRequestError("At least one Change is required to update")
@@ -116,8 +110,7 @@ export const organizerService = {
   },
 
   async deleteOrganizer(id) {
-    const organizer = await organizerRepository.findById(id);
-    if (!organizer) throw new NotFoundError("Organizer not found");
+    const organizer = await checkExist(id);
 
     const eventCount = await organizerRepository.countEvents(id);
     if (eventCount > 0) {

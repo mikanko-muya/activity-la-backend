@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
     event: {
@@ -61,9 +62,7 @@ export const notificationRepository = {
         const [data, total] = await prisma.$transaction([
             prisma.notification.findMany({
                 where,
-                skip: (query.page - 1) * query.limit,
-                take: query.limit,
-                orderBy: { [query.sortBy]: query.sortOrder },
+                ...paginateArgs(query),
                 include: withUser ? adminInclude : include,
             }),
             prisma.notification.count({ where }),

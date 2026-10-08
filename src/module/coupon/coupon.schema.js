@@ -24,6 +24,7 @@ export const createCouponSchema = z
       .int()
       .positive("Usage limit must be a positive integer")
       .optional(),
+    eventId: z.string().uuid("Invalid event id format"),
   })
   .refine((date) => date.validTo > date.validFrom, {
     message: "validTO must be greater than validFrom",
@@ -57,6 +58,7 @@ export const updateCouponSchema = z
       .positive("Usage limit must be a positive integer")
       .optional(),
     isActive: z.boolean().optional(),
+    eventId: z.string().uuid("Invalid event id format").optional(),
   })
   .refine(
     (data) => !data.validFrom || !data.validTo || data.validTo > data.validFrom,

@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
     user: {
@@ -49,25 +50,25 @@ const include = {
     },
 };
 
+const buildWhere = (query) => ({
+    ...(query.userId && { userId: query.userId }),
+    ...(query.eventId && { eventId: query.eventId }),
+    ...(query.status && { status: query.status }),
+});
+
 export const orderRepository = {
     findById: (id) => prisma.order.findUnique({ where: { id }, include }),
 
     findByUserId: (userId) =>
         prisma.order.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, include }),
 
-    findMany: async ({ page, limit, userId, eventId, status, sortBy, sortOrder }) => {
-        const where = {
-            ...(userId && { userId }),
-            ...(eventId && { eventId }),
-            ...(status && { status }),
-        };
+    findMany: async (query) => {
+        const where = buildWhere(query);
 
         const [data, total] = await prisma.$transaction([
             prisma.order.findMany({
                 where,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { [sortBy]: sortOrder },
+                ...paginateArgs(query),
                 include,
             }),
             prisma.order.count({ where }),

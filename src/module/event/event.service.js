@@ -1,8 +1,12 @@
 import { BadRequestError, NotFoundError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { categoryRepository } from "../category/category.repository.js";
 import { eventRepository } from "./event.repository.js";
+
+const checkExist = checkExistBy(eventRepository.findById, "Event");
+const checkCategoryExist = checkExistBy(categoryRepository.findById, "Category");
 
 const assertRelationsExist = async (input) => {
     const wanted = {
@@ -23,19 +27,15 @@ const PUBLIC_EVENT_STATUS = "PUBLISHED";
 
 export const eventService = {
     async getEventById(id) {
-        const event = await eventRepository.findById(id);
-        if (!event) throw new NotFoundError("Event not found");
-        return event;
+        return checkExist(id);
     },
 
     async getEvents(query) {
-        const result = await eventRepository.findMany(query);
-        return { data: result.data, meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }) };
+        return toPaginated(await eventRepository.findMany(query), query);
     },
 
     async getEventsByCategory(categoryId, query) {
-        const category = await categoryRepository.findById(categoryId);
-        if (!category) throw new NotFoundError("Category not found");
+        await checkCategoryExist(categoryId);
 
         return eventService.getEvents({ ...query, categoryId });
     },
@@ -45,8 +45,7 @@ export const eventService = {
     },
 
     async getPublicEventsByCategory(categoryId, query) {
-        const category = await categoryRepository.findById(categoryId);
-        if (!category) throw new NotFoundError("Category not found");
+        await checkCategoryExist(categoryId);
 
         return eventService.getPublicEvents({ ...query, categoryId });
     },
@@ -74,8 +73,7 @@ export const eventService = {
     },
 
     async updateEvent(id, input, file) {
-        const event = await eventRepository.findById(id);
-        if (!event) throw new NotFoundError("Event not found");
+        const event = await checkExist(id);
 
         if ((!input || Object.keys(input).length === 0) && !file) {
             throw new BadRequestError("At least one change is required to update");
@@ -111,22 +109,19 @@ export const eventService = {
     },
 
     async publishEvent(id) {
-        const event = await eventRepository.findById(id);
-        if (!event) throw new NotFoundError("Event not found");
+        await checkExist(id);
 
         return eventRepository.update(id, { eventStatus: "PUBLISHED" });
     },
 
     async cancelEvent(id) {
-        const event = await eventRepository.findById(id);
-        if (!event) throw new NotFoundError("Event not found");
+        await checkExist(id);
 
         return eventRepository.update(id, { eventStatus: "CANCELLED" });
     },
 
     async deleteEvent(id) {
-        const event = await eventRepository.findById(id);
-        if (!event) throw new NotFoundError("Event not found");
+        const event = await checkExist(id);
 
         const deleted = await eventRepository.delete(id);
 

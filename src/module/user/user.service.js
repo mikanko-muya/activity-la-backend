@@ -1,8 +1,11 @@
-import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
+import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
+
+const checkExist = checkExistBy(userRepository.findById, "User");
 
 const toSafeData = (data) => {
   const { password, profilePublicId, ...safeData } = data
@@ -11,17 +14,11 @@ const toSafeData = (data) => {
 
 export const userService = {
   async getUserById(id) {
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
-    return toSafeData(user);
+    return toSafeData(await checkExist(id));
   },
 
   async getUsers(query) {
-    const result = await userRepository.findMany(query);
-    return {
-      data: result.data.map(toSafeData),
-      meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-    };
+    return toPaginated(await userRepository.findMany(query), query, toSafeData);
   },
 
   async createUser(input) {
@@ -40,8 +37,7 @@ export const userService = {
   },
 
   async updateUser(id, input, file) {
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
+    const user = await checkExist(id);
 
     if ((!input || Object.keys(input).length === 0) && !file) {
       throw new BadRequestError("At least one Change is required to update")
@@ -83,8 +79,7 @@ export const userService = {
   },
 
   async changePassword(id, input) {
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
+    const user = await checkExist(id);
 
     const isPasswordValid = await comparePassword(input.oldPassword, user.password)
     if (!isPasswordValid) throw new BadRequestError("Invalid Old Password")
@@ -96,8 +91,7 @@ export const userService = {
   },
 
   async assignRole(id, role) {
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
+    const user = await checkExist(id);
 
     if (user.role === role) {
       throw new BadRequestError(`User already has the role ${role}`);
@@ -107,8 +101,7 @@ export const userService = {
   },
 
   async deleteUser(id) {
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
+    const user = await checkExist(id);
 
     const deletedUser = await userRepository.delete(id);
 
@@ -124,8 +117,7 @@ export const userService = {
   },
 
   async getOrderHistory(id){
-    const user = await userRepository.findById(id);
-    if (!user) throw new NotFoundError("User not found");
+    await checkExist(id);
 
     return userRepository.findOrderHistory(id);
   }

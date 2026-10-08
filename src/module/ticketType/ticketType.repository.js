@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
     event: {
@@ -25,17 +26,17 @@ const publicFields = {
     status: true,
 };
 
+const buildWhere = (query) => ({
+    ...(query.status && { status: query.status }),
+    ...(query.eventId && { eventId: query.eventId }),
+    ...(query.search && { name: { contains: query.search } }),
+});
+
 const publicWhere = (query) => ({
     status: "ACTIVE",
     event: { eventStatus: "PUBLISHED" },
     ...(query.eventId && { eventId: query.eventId }),
     ...(query.search && { name: { contains: query.search } }),
-});
-
-const paginate = ({ page, limit, sortBy, sortOrder }) => ({
-    skip: (page - 1) * limit,
-    take: limit,
-    orderBy: { [sortBy]: sortOrder },
 });
 
 export const ticketTypeRepository = {
@@ -46,14 +47,10 @@ export const ticketTypeRepository = {
     findById: (id) => prisma.ticketType.findUnique({ where: { id }, include }),
 
     findMany: async (query) => {
-        const where = {
-            ...(query.status && { status: query.status }),
-            ...(query.eventId && { eventId: query.eventId }),
-            ...(query.search && { name: { contains: query.search } }),
-        };
+        const where = buildWhere(query);
 
         const [data, total] = await prisma.$transaction([
-            prisma.ticketType.findMany({ where, include, ...paginate(query) }),
+            prisma.ticketType.findMany({ where, include, ...paginateArgs(query) }),
             prisma.ticketType.count({ where }),
         ]);
 
@@ -70,15 +67,12 @@ export const ticketTypeRepository = {
         const where = publicWhere(query);
 
         const [data, total] = await prisma.$transaction([
-            prisma.ticketType.findMany({ where, select: publicFields, ...paginate(query) }),
+            prisma.ticketType.findMany({ where, select: publicFields, ...paginateArgs(query) }),
             prisma.ticketType.count({ where }),
         ]);
 
         return { data, total };
     },
-
-    eventExists: async (eventId) =>
-        (await prisma.event.count({ where: { id: eventId } })) > 0,
 
     countOrderItems: (id) => prisma.orderItem.count({ where: { ticketId: id } }),
 

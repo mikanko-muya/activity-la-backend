@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 
 const publicFields = {
     id: true,
@@ -7,14 +8,8 @@ const publicFields = {
     logoUrl: true,
 };
 
-const buildWhere = (search, fields) =>
-    search ? { OR: fields.map((field) => ({ [field]: { contains: search } })) } : {};
-
-const paginate = ({ page, limit, sortBy, sortOrder }) => ({
-    skip: (page - 1) * limit,
-    take: limit,
-    orderBy: { [sortBy]: sortOrder },
-});
+const buildWhere = (query, fields) =>
+    query.search ? { OR: fields.map((field) => ({ [field]: { contains: query.search } })) } : {};
 
 export const organizerRepository = {
     create: (data) => prisma.organizer.create({ data }),
@@ -27,10 +22,10 @@ export const organizerRepository = {
     countEvents: (id) => prisma.event.count({ where: { organizerId: id } }),
 
     findMany: async (query) => {
-        const where = buildWhere(query.search, ["name", "email", "phone"]);
+        const where = buildWhere(query, ["name", "email", "phone"]);
 
         const [data, total] = await prisma.$transaction([
-            prisma.organizer.findMany({ where, ...paginate(query) }),
+            prisma.organizer.findMany({ where, ...paginateArgs(query) }),
             prisma.organizer.count({ where }),
         ]);
 
@@ -41,10 +36,10 @@ export const organizerRepository = {
         prisma.organizer.findUnique({ where: { id }, select: publicFields }),
 
     findManyPublic: async (query) => {
-        const where = buildWhere(query.search, ["name", "description"]);
+        const where = buildWhere(query, ["name", "description"]);
 
         const [data, total] = await prisma.$transaction([
-            prisma.organizer.findMany({ where, select: publicFields, ...paginate(query) }),
+            prisma.organizer.findMany({ where, select: publicFields, ...paginateArgs(query) }),
             prisma.organizer.count({ where }),
         ]);
 

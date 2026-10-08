@@ -1,12 +1,13 @@
-import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { prisma } from "../../config/prisma.config.js";
+import { eventRepository } from "../event/event.repository.js";
 import { ticketTypeRepository } from "./ticketType.repository.js";
 
-const assertEventExists = async (eventId) => {
-    const exists = await ticketTypeRepository.eventExists(eventId);
-    if (!exists) throw new NotFoundError("Event not found");
-};
+const checkExist = checkExistBy(ticketTypeRepository.findById, "Ticket type");
+const checkPublicExist = checkExistBy(ticketTypeRepository.findByIdPublic, "Ticket type");
+const checkEventExist = checkExistBy(eventRepository.findById, "Event");
 
 const assertSaleWindowOrdered = (saleStart, saleEnd) => {
     if (saleStart && saleEnd && saleEnd <= saleStart) {
@@ -21,43 +22,31 @@ const toPublic = ({ quantity, saleQuantity, price, ...rest }) => ({
     isSoldOut: saleQuantity >= quantity,
 });
 
-const paginated = (result, query, map = (row) => row) => ({
-    data: result.data.map(map),
-    meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-});
-
 export const ticketTypeService = {
     async getTicketTypeById(id) {
-        const ticketType = await ticketTypeRepository.findById(id);
-        if (!ticketType) throw new NotFoundError("Ticket type not found");
-
-        return ticketType;
+        return checkExist(id);
     },
 
     async getTicketTypes(query) {
-        return paginated(await ticketTypeRepository.findMany(query), query);
+        return toPaginated(await ticketTypeRepository.findMany(query), query);
     },
 
     async getPublicTicketTypeById(id) {
-        const ticketType = await ticketTypeRepository.findByIdPublic(id);
-        if (!ticketType) throw new NotFoundError("Ticket type not found");
-
-        return toPublic(ticketType);
+        return toPublic(await checkPublicExist(id));
     },
 
     async getPublicTicketTypes(query) {
-        return paginated(await ticketTypeRepository.findManyPublic(query), query, toPublic);
+        return toPaginated(await ticketTypeRepository.findManyPublic(query), query, toPublic);
     },
 
     async createTicketType(input) {
-        await assertEventExists(input.eventId);
+        await checkEventExist(input.eventId);
 
         return ticketTypeRepository.create(input);
     },
 
     async updateTicketType(id, input) {
-        const ticketType = await ticketTypeRepository.findById(id);
-        if (!ticketType) throw new NotFoundError("Ticket type not found");
+        const ticketType = await checkExist(id);
 
         const { quantity, ...fields } = input;
 
@@ -86,8 +75,7 @@ export const ticketTypeService = {
     },
 
     async deleteTicketType(id) {
-        const ticketType = await ticketTypeRepository.findById(id);
-        if (!ticketType) throw new NotFoundError("Ticket type not found");
+        await checkExist(id);
 
         const orderItems = await ticketTypeRepository.countOrderItems(id);
         if (orderItems > 0) {

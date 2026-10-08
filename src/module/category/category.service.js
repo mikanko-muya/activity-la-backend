@@ -1,21 +1,18 @@
-import { BadRequestError, ConflictError, NotFoundError } from "../../utils/errors/index.js";
+import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { checkExistBy } from "../../utils/resource.js";
 import { categoryRepository } from "./category.repository.js"
+
+const checkExist = checkExistBy(categoryRepository.findById, "Category");
 
 export const categoryService = {
     async getCategoryById (id) {
-        const category = await categoryRepository.findById(id);
-        if (!category) throw new NotFoundError("Category not found");
-        return category;
+        return checkExist(id);
     },
 
     async getCategories (query) {
-        const result = await categoryRepository.findMany(query);
-        return {
-            data: result.data,
-            meta: buildMeta({ total: result.total, page: query.page, limit: query.limit })
-        }
+        return toPaginated(await categoryRepository.findMany(query), query);
     },
 
     async createCategory (input, file) {
@@ -36,8 +33,7 @@ export const categoryService = {
     },
 
     async updateCategory (id, input, file) {
-        const category = await categoryRepository.findById(id);
-        if (!category) throw new NotFoundError("Category not found");
+        const category = await checkExist(id);
 
         if ((!input || Object.keys(input).length === 0) && !file) {
             throw new BadRequestError("At least one change is required to update");
@@ -72,8 +68,7 @@ export const categoryService = {
     },
 
     async deleteCategory (id) {
-        const category = await categoryRepository.findById(id);
-        if (!category) throw new NotFoundError("Category not found");
+        const category = await checkExist(id);
 
         const deleted = await categoryRepository.delete(id);
 

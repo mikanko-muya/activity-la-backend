@@ -1,5 +1,18 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
 import { OrderHistoryRepository } from "../orderHistory/orderHistory.repository.js";
+
+const buildWhere = (query) => ({
+  ...(query.role && { role: query.role }),
+  ...(query.isActive !== undefined && { isActive: query.isActive }),
+  ...(query.search && {
+    OR: [
+      { name: { contains: query.search } },
+      { email: { contains: query.search } },
+      { phone: { contains: query.search } },
+    ],
+  }),
+});
 
 export const userRepository = {
   create: (data) => {
@@ -30,24 +43,12 @@ export const userRepository = {
     return OrderHistoryRepository.findOrderHistoryByUserId(id)
   },
 
-  findMany: async ({ page, limit, search, role, isActive, sortBy, sortOrder }) => {
-    const where = {
-      ...(role && { role }),
-      ...(isActive !== undefined && { isActive }),
-      ...(search && {
-        OR: [
-          { name: { contains: search } },
-          { email: { contains: search } },
-          { phone: { contains: search } },
-        ],
-      }),
-    };
+  findMany: async (query) => {
+    const where = buildWhere(query);
     const [data, total] = await prisma.$transaction([
       prisma.user.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { [sortBy]: sortOrder },
+        ...paginateArgs(query),
       }),
       prisma.user.count({ where }),
     ]);

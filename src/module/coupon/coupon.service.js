@@ -1,15 +1,15 @@
-import {
-  BadRequestError,
-  ConflictError,
-  NotFoundError,
-} from "../../utils/errors/index.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { assertFound, checkExistBy } from "../../utils/resource.js";
 import {
   generateCouponCode,
   normalizeCouponCode,
 } from "../../utils/couponCode.js";
 import { eventRepository } from "../event/event.repository.js";
 import { couponRepository } from "./coupon.repository.js";
+
+const checkExist = checkExistBy(couponRepository.findById, "Coupon");
+const checkEventExist = checkExistBy(eventRepository.findById, "Event");
 
 const toNumber = (value) =>
   value === null || value === undefined ? value : Number(value);
@@ -56,34 +56,25 @@ const CODE_GENERATION_ATTEMPTS = 5;
 
 export const couponService = {
   async getCouponById(id) {
-    const coupon = await couponRepository.findById(id);
-    if (!coupon) throw new NotFoundError("Coupon not found");
-    return toPublic(coupon);
+    return toPublic(await checkExist(id));
   },
 
   async getCoupons(query) {
-    const result = await couponRepository.findMany(query);
-    return {
-      data: result.data.map(toPublic),
-      meta: buildMeta({
-        total: result.total,
-        page: query.page,
-        limit: query.limit,
-      }),
-    };
+    return toPaginated(await couponRepository.findMany(query), query, toPublic);
   },
 
   async getUsableCouponByCode(code, { eventId, userId } = {}) {
-    const coupon = await couponRepository.findByCode(normalizeCouponCode(code));
-    if (!coupon) throw new NotFoundError("Coupon not found");
+    const coupon = assertFound(
+      await couponRepository.findByCode(normalizeCouponCode(code)),
+      "Coupon",
+    );
 
     await assertCouponUsable(coupon, { eventId, userId });
     return toPublic(coupon);
   },
 
   async createCoupon(input) {
-    const event = await eventRepository.findById(input.eventId);
-    if (!event) throw new NotFoundError("Event not found");
+    await checkEventExist(input.eventId);
 
     if (input.code) {
       const code = normalizeCouponCode(input.code);
@@ -112,8 +103,7 @@ export const couponService = {
   },
 
   async updateCoupon(id, input) {
-    const coupon = await couponRepository.findById(id);
-    if (!coupon) throw new NotFoundError("Coupon not found");
+    const coupon = await checkExist(id);
 
     if (!input || Object.keys(input).length === 0) {
       throw new BadRequestError("At least one change is required to update");
@@ -130,8 +120,7 @@ export const couponService = {
     }
 
     if (input.eventId && input.eventId !== coupon.eventId) {
-      const event = await eventRepository.findById(input.eventId);
-      if (!event) throw new NotFoundError("Event not found");
+      await checkEventExist(input.eventId);
     }
 
     const discountType = input.discountType ?? coupon.discountType;
@@ -162,8 +151,7 @@ export const couponService = {
   },
 
   async deleteCoupon(id) {
-    const coupon = await couponRepository.findById(id);
-    if (!coupon) throw new NotFoundError("Coupon not found");
+    await checkExist(id);
 
     const redemptions = await couponRepository.countRedemptions(id);
     if (redemptions > 0) {

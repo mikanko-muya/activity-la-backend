@@ -4,19 +4,18 @@ import {
     ForbiddenError,
     NotFoundError,
 } from "../../utils/errors/index.js";
-import { buildMeta } from "../../utils/pagination.js";
+import { toPaginated } from "../../utils/pagination.js";
+import { assertFound, checkExistBy } from "../../utils/resource.js";
 import { prisma } from "../../config/prisma.config.js";
 import { generateQrPayload, generateTicketCode, generateTransactionRef } from "../../utils/ticketCode.js";
 import { notificationService } from "../notification/notification.service.js";
 import { orderRepository } from "../order/order.repository.js";
 import { paymentRepository } from "./payment.repository.js";
 
-const TICKET_CODE_ATTEMPTS = 5;
+const checkExist = checkExistBy(paymentRepository.findById, "Payment");
+const checkOrderExist = checkExistBy(orderRepository.findById, "Order");
 
-const paginated = (result, query) => ({
-    data: result.data,
-    meta: buildMeta({ total: result.total, page: query.page, limit: query.limit }),
-});
+const TICKET_CODE_ATTEMPTS = 5;
 
 const assertOrderPayable = (order) => {
     if (order.status !== "PENDING") {
@@ -51,8 +50,7 @@ const issueTickets = async (tx, order) => {
 
 export const paymentService = {
     async createPayment(actingUserId, input) {
-        const order = await orderRepository.findById(input.orderId);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkOrderExist(input.orderId);
 
         if (order.userId !== actingUserId) {
             throw new ForbiddenError("You do not have permission");
@@ -73,15 +71,16 @@ export const paymentService = {
     },
 
     async settlePayment(input) {
-        const payment = await paymentRepository.findByTransactionRef(input.transactionRef);
-        if (!payment) throw new NotFoundError("Payment not found");
+        const payment = assertFound(
+            await paymentRepository.findByTransactionRef(input.transactionRef),
+            "Payment"
+        );
 
         if (payment.status !== "PENDING") {
             return paymentRepository.findById(payment.id);
         }
 
-        const order = await orderRepository.findById(payment.orderId);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkOrderExist(payment.orderId);
 
         const succeeded = input.status === "SUCCESS";
 
@@ -135,8 +134,7 @@ export const paymentService = {
     },
 
     async getPaymentById(id, { actingUserId } = {}) {
-        const payment = await paymentRepository.findById(id);
-        if (!payment) throw new NotFoundError("Payment not found");
+        const payment = await checkExist(id);
 
         if (actingUserId && payment.order.userId !== actingUserId) {
             throw new NotFoundError("Payment not found");
@@ -147,16 +145,15 @@ export const paymentService = {
 
     async getMyPayments(actingUserId, query) {
         const result = await paymentRepository.findMany({ ...query, userId: actingUserId });
-        return paginated(result, query);
+        return toPaginated(result, query);
     },
 
     async getPayments(query) {
-        return paginated(await paymentRepository.findMany(query), query);
+        return toPaginated(await paymentRepository.findMany(query), query);
     },
 
     async getMyOrderTickets(orderId, actingUserId) {
-        const order = await orderRepository.findById(orderId);
-        if (!order) throw new NotFoundError("Order not found");
+        const order = await checkOrderExist(orderId);
 
         if (order.userId !== actingUserId) {
             throw new NotFoundError("Order not found");

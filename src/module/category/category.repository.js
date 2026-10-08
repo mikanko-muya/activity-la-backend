@@ -1,4 +1,9 @@
 import { prisma } from "../../config/prisma.config.js";
+import { paginateArgs } from "../../utils/pagination.js";
+
+const buildWhere = (query) => ({
+    ...(query.search && { name: { contains: query.search } }),
+});
 
 export const categoryRepository = {
     create: (data) => { return prisma.category.create({ data }) },
@@ -7,15 +12,13 @@ export const categoryRepository = {
     findById: (id) => { return prisma.category.findUnique({ where: { id } }) },
     findByName: (name) => { return prisma.category.findFirst({ where: { name } }) },
 
-    findMany: async ({ page, limit, search, sortBy, sortOrder }) => {
-        const where = { ...(search && { name: { contains: search } }) };
+    findMany: async (query) => {
+        const where = buildWhere(query);
 
         const [data, total] = await prisma.$transaction([
             prisma.category.findMany({
                 where,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { [sortBy]: sortOrder },
+                ...paginateArgs(query),
             }),
             prisma.category.count({
                 where
