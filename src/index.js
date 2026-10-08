@@ -10,7 +10,10 @@ const app = express();
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
-app.use('/api', router);
+// One versioned mount. A breaking change ships as /api/v2 beside it, so a
+// client that cannot be updated in step - a mobile build already on phones -
+// keeps working on v1.
+app.use("/api/v1", router);
 
 app.use((req, _res, next) => {
     next(new NotFoundError(`Route ${req.method} ${req.originalUrl} not found`));
