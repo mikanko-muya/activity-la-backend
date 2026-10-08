@@ -18,8 +18,6 @@ app.use((req, _res, next) => {
 
 app.use(errorHandler)
 
-app.use("/api/v1", router);
-
 app.listen(PORT, ()=>{
     console.log(`http://localhost:${PORT}`);
 })
