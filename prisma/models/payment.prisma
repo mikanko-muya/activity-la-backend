@@ -2,14 +2,17 @@ model Payment {
   id String @id @default(uuid()) @db.VarChar(36)
 
   orderId        String
-  amount         Int
-  transactionRef String?
+  amount         Decimal       @db.Decimal(10, 2)
+  transactionRef String?       @unique
   method         PaymentMethod
   status         PaymentStatus @default(PENDING)
   paidAt         DateTime?
+  failureReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, status])
 }

@@ -53,6 +53,9 @@ export const Permissions = {
         update: "ticket-type:update",
         delete: "ticket-type:delete",
     },
+    payment: {
+        read: "payment:read",
+    },
 };
 
 const flatten = (group) => Object.values(group).flatMap((actions) => Object.values(actions));
@@ -66,6 +69,7 @@ const CONTENT_PERMISSIONS = flatten({
     organizer: Permissions.organizer,
     notification: Permissions.notification,
     ticketType: Permissions.ticketType,
+    payment: Permissions.payment,
 });
 
 const ALL_PERMISSIONS = flatten(Permissions);

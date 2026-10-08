@@ -38,6 +38,15 @@ const include = {
 
     coupon: true,
     couponRedemption: true,
+
+    tickets: {
+        select: {
+            id: true,
+            ticketCode: true,
+            qrCode: true,
+            status: true,
+        },
+    },
 };
 
 export const orderRepository = {
@@ -98,6 +107,8 @@ export const orderRepository = {
     update: (tx, id, data) => tx.order.update({ where: { id }, data, include }),
 
     delete: (id) => prisma.order.delete({ where: { id } }),
+
+    countPayments: (orderId) => prisma.payment.count({ where: { orderId } }),
 
     createRedemption: (tx, { couponId, userId, orderId }) =>
         tx.couponRedemption.create({ data: { couponId, userId, orderId } }),

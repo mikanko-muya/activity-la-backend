@@ -237,6 +237,13 @@ export const orderService = {
             throw new BadRequestError("Pending order cannot be deleted");
         }
 
+        const payments = await orderRepository.countPayments(id);
+        if (payments > 0) {
+            throw new ConflictError(
+                `Order has ${payments} payment record(s) and cannot be deleted`
+            );
+        }
+
         return orderRepository.delete(id);
     },
 };
