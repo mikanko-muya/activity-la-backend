@@ -47,6 +47,16 @@ export const paymentRepository = {
     countByOrderIdAndStatus: (orderId, status) =>
         prisma.payment.count({ where: { orderId, status } }),
 
+    // A QR that is still within its window for this order and bank. Pressing
+    // Pay twice hands back the same QR instead of a second one, so there is
+    // only ever one live QR to pay - two would invite paying twice.
+    findLivePending: (orderId, method) =>
+        prisma.payment.findFirst({
+            where: { orderId, method, status: "PENDING", expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: "desc" },
+            include,
+        }),
+
     settle: (tx, id, data) =>
         tx.payment.updateMany({ where: { id, status: "PENDING" }, data }),
 

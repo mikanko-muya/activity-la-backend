@@ -8,14 +8,40 @@ import { toPaginated } from "../../utils/pagination.js";
 import { assertFound, checkExistBy } from "../../utils/resource.js";
 import { prisma } from "../../config/prisma.config.js";
 import { generateQrPayload, generateTicketCode, generateTransactionRef } from "../../utils/ticketCode.js";
+import QRCode from "qrcode";
+
 import { notificationService } from "../notification/notification.service.js";
 import { orderRepository } from "../order/order.repository.js";
+import { getPaymentGateway } from "./gateway/index.js";
 import { paymentRepository } from "./payment.repository.js";
 
 const checkExist = checkExistBy(paymentRepository.findById, "Payment");
 const checkOrderExist = checkExistBy(orderRepository.findById, "Order");
 
 const TICKET_CODE_ATTEMPTS = 5;
+
+// How long a payment QR stays payable. The order's own reservation is longer,
+// so a customer whose QR lapses can ask for a fresh one.
+const QR_WINDOW_MINUTES = 5;
+
+// Which bank's QR each payment method needs. bank_transfer has none: someone
+// checks the statement and confirms it by hand.
+const GATEWAY_BANK = {
+    bcel_one: "BCEL",
+    onepay: "BCEL",
+    ldb_mobile: "LDB",
+};
+
+const isLive = (payment) =>
+    payment.status === "PENDING" && payment.expiresAt && payment.expiresAt > new Date();
+
+// The QR is stored as text. A client gets it rendered as an image as well, so
+// a web page or an app can show it with a plain <img> and needs no QR library
+// - but only while it can still be paid.
+const withQrImage = async (payment) =>
+    payment?.qrCode && isLive(payment)
+        ? { ...payment, qrImage: await QRCode.toDataURL(payment.qrCode, { width: 360, margin: 2 }) }
+        : payment;
 
 const assertOrderPayable = (order) => {
     if (order.status !== "PENDING") {
@@ -61,13 +87,58 @@ export const paymentService = {
         const settled = await paymentRepository.countByOrderIdAndStatus(order.id, "SUCCESS");
         if (settled > 0) throw new ConflictError("Order has already been paid");
 
-        return paymentRepository.create({
+        const bank = GATEWAY_BANK[input.method];
+
+        if (!bank) {
+            return paymentRepository.create({
+                orderId: order.id,
+                amount: order.totalAmount,
+                method: input.method,
+                status: "PENDING",
+                transactionRef: generateTransactionRef(),
+            });
+        }
+
+        const live = await paymentRepository.findLivePending(order.id, input.method);
+        if (live) return withQrImage(live);
+
+        // Kip has no subunit and a gateway charges whole amounts, so a total
+        // with a fraction is refused rather than silently rounded - the event
+        // that confirms the payment is checked against this exact amount.
+        const amount = Number(order.totalAmount);
+        if (!Number.isInteger(amount) || amount < 1) {
+            throw new BadRequestError(
+                amount === 0
+                    ? "This order is free and does not need a payment"
+                    : "Order total must be a whole number of kip to be paid by QR"
+            );
+        }
+
+        const qrDeadline = new Date(Date.now() + QR_WINDOW_MINUTES * 60 * 1000);
+        const expiresAt =
+            order.expiresAt && order.expiresAt < qrDeadline ? order.expiresAt : qrDeadline;
+
+        // Outside any transaction: this is a network call to someone else's
+        // server, and a slow answer must not hold database locks. If it fails
+        // no payment row exists, so there is nothing to undo.
+        const qr = await getPaymentGateway().createQr({
+            bank,
+            amount,
+            description: `Activity LA order ${order.id.slice(0, 8)}`,
+        });
+
+        const payment = await paymentRepository.create({
             orderId: order.id,
             amount: order.totalAmount,
             method: input.method,
             status: "PENDING",
-            transactionRef: generateTransactionRef(),
+            transactionRef: qr.transactionId,
+            qrCode: qr.qrCode,
+            deepLink: qr.deepLink,
+            expiresAt,
         });
+
+        return withQrImage(payment);
     },
 
     async settlePayment(input) {
@@ -89,6 +160,7 @@ export const paymentService = {
                 status: input.status,
                 paidAt: succeeded ? (input.paidAt ?? new Date()) : null,
                 failureReason: succeeded ? null : (input.failureReason ?? "Payment failed"),
+                ...(input.gatewayRef && { gatewayRef: input.gatewayRef }),
             });
 
             if (updated.count !== 1) {
@@ -140,7 +212,9 @@ export const paymentService = {
             throw new NotFoundError("Payment not found");
         }
 
-        return payment;
+        // This is the read a checkout screen polls while it waits, so it
+        // carries the QR image for as long as the QR can be paid.
+        return withQrImage(payment);
     },
 
     async getMyPayments(actingUserId, query) {

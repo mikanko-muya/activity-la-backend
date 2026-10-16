@@ -179,8 +179,13 @@ const EVENTS = [
       ] },
     { key: "heritage", title: "Luang Prabang Heritage Walk", category: "Travel", org: 3, venue: 2, in: 8, hours: 3, status: "PUBLISHED",
       types: [{ key: "general", name: "Walker", price: 80000, quantity: 40 }] },
+    // "Sandbox Test" costs 1 kip because the PhaJay test account only takes
+    // 1-999 kip - it is the ticket to buy when checking a real QR payment.
     { key: "coffee", title: "Lao Coffee Workshop", category: "Workshop", org: 2, venue: 0, in: 5, hours: 2, status: "PUBLISHED",
-      types: [{ key: "seat", name: "Seat", price: 120000, quantity: 20 }] },
+      types: [
+          { key: "seat", name: "Seat", price: 120000, quantity: 20 },
+          { key: "sandbox", name: "Sandbox Test (1 kip)", price: 1, quantity: 100 },
+      ] },
     { key: "tech", title: "Tech Meetup Vientiane", category: "Technology", org: 4, venue: 5, in: 15, hours: 3, status: "PUBLISHED", isFree: true,
       types: [{ key: "free", name: "Free Pass", price: 0, quantity: 100 }] },
     { key: "market", title: "Pakse Food Market", category: "Food & Drink", org: 1, venue: 3, in: 3, hours: 5, status: "PUBLISHED",
@@ -310,11 +315,12 @@ const seedOrders = async (events, customers) => {
 
     await pay("noy", await order("noy", "sunset", "general", 2, "SUNSET20"), "bcel_one"); counts.paid++;
     await pay("kham", await order("kham", "rock", "general", 1, "ROCK50K"), "onepay"); counts.paid++;
-    await pay("somchai", await order("somchai", "rock", "vip", 2), "ldb_mobile"); counts.paid++;
+    await pay("somchai", await order("somchai", "rock", "vip", 2), "onepay"); counts.paid++;
     await pay("vanh", await order("vanh", "rock", "vip", 1), "bcel_one"); counts.paid++;
     await pay("malee", await order("malee", "market", "entry", 4, "FIRSTONE"), "onepay"); counts.paid++;
     await pay("kham", await order("kham", "jazz", "general", 2), "bank_transfer"); counts.paid++;
-    await pay("somchai", await order("somchai", "comedy", "general", 2), "ldb_mobile"); counts.paid++;
+    // Not ldb_mobile: LDB QRs are not wired yet, and the fake refuses them too.
+    await pay("somchai", await order("somchai", "comedy", "general", 2), "onepay"); counts.paid++;
     await pay("malee", await order("malee", "photo", "seat", 1), "bank_transfer"); counts.paid++;
     await pay("vanh", await order("vanh", "run", "10k", 2), "bcel_one"); counts.paid++;
 
@@ -376,6 +382,10 @@ const seedNotifications = async (customers, coupons, events) => {
 
 const main = async () => {
     refuseUnlessLocal();
+
+    // Seeded payments are made up, at prices the PhaJay sandbox would refuse.
+    // The fake gateway issues stand-in QRs and talks to nobody.
+    process.env.PAYMENT_GATEWAY = "fake";
 
     console.log("seed:dev - resetting development data");
     const kept = await wipe();

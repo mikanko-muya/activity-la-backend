@@ -4,6 +4,7 @@ import router from "./router/routers.js";
 import { PORT } from "./config/globalkey.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { NotFoundError } from "./utils/errors/index.js";
+import { startPhajayListener } from "./module/payment/phajay.listener.js";
 
 const app = express();
 
@@ -23,4 +24,7 @@ app.use(errorHandler)
 
 app.listen(PORT, ()=>{
     console.log(`http://localhost:${PORT}`);
+    // One connection for the whole API, opened once it is serving: completed
+    // QR payments arrive here and are settled in the background.
+    startPhajayListener();
 })
