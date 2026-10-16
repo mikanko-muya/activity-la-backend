@@ -19,10 +19,12 @@ export const createVenueSchema = z.object({
     mapUrl: z.string().url("Invalid URL format"),
 });
 
+// min(1) on each, or an edit could blank a venue's name - optional means "may
+// be left out", not "may be emptied".
 export const updatevenueSchema = z.object({
-    name: z.string().trim().max(255).optional(),
-    province: z.string().trim().max(255).optional(),
-    address: z.string().trim().optional(),
+    name: z.string().trim().min(1, "Name is required").max(255).optional(),
+    province: z.string().trim().min(1, "Province is required").max(255).optional(),
+    address: z.string().trim().min(1, "Address is required").optional(),
     mapUrl: z.string().url("Invalid URL format").optional(),
 })
 
