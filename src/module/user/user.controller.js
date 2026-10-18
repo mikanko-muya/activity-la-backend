@@ -85,7 +85,7 @@ router.patch(
     upload.single("profile"),
     validate(updateUserSchema),
     asyncHandler(async (req, res) => {
-        const data = await userService.updateUser(req.params.id, req.body, req.file);
+        const data = await userService.updateUser(req.params.id, req.body, req.file, { actingUserId: req.user.id });
         return sendSuccess(res, { statusCode: 200, message: "Updated user Successfully", data });
     })
 );
@@ -95,7 +95,7 @@ router.delete(
     requirePermission(Permissions.user.delete),
     validate(userIdSchema, "params"),
     asyncHandler(async (req, res) => {
-        const data = await userService.deleteUser(req.params.id);
+        const data = await userService.deleteUser(req.params.id, { actingUserId: req.user.id });
         return sendSuccess(res, { statusCode: 200, message: "Deleted account successfully", data });
     })
 );
@@ -106,7 +106,7 @@ router.patch(
     validate(userIdSchema, "params"),
     validate(assignRoleSchema),
     asyncHandler(async (req, res) => {
-        const data = await userService.assignRole(req.params.id, req.body.role);
+        const data = await userService.assignRole(req.params.id, req.body.role, { actingUserId: req.user.id });
         return sendSuccess(res, { statusCode: 200, message: "Role assigned successfully", data });
     })
 );

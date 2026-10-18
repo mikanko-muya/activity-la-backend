@@ -1,11 +1,21 @@
-import { BadRequestError, ConflictError } from "../../utils/errors/index.js";
+import { BadRequestError, ConflictError, ForbiddenError } from "../../utils/errors/index.js";
 import { deleteImageFromCloudinary, uploadImageBufferToCloudinary } from "../../utils/uploadImage.js";
 import { userRepository } from "./user.repository.js";
+import { authRepository } from "../auth/auth.repository.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
 import { toPaginated } from "../../utils/pagination.js";
 import { checkExistBy } from "../../utils/resource.js";
 
 const checkExist = checkExistBy(userRepository.findById, "User");
+
+// The admin routes act on someone else's account. Doing these to your own is
+// refused: a superadmin who demotes, deactivates or deletes themselves can leave
+// nobody able to manage users, and the way back is re-running the seed script.
+const assertNotSelf = (id, actingUserId, action) => {
+  if (actingUserId && id === actingUserId) {
+    throw new ForbiddenError(`You cannot ${action} your own account`);
+  }
+};
 
 const toSafeData = (data) => {
   const { password, profilePublicId, ...safeData } = data
@@ -36,8 +46,10 @@ export const userService = {
     return toSafeData(user);
   },
 
-  async updateUser(id, input, file) {
+  async updateUser(id, input, file, { actingUserId } = {}) {
     const user = await checkExist(id);
+
+    if (input?.isActive === false) assertNotSelf(id, actingUserId, "deactivate");
 
     if ((!input || Object.keys(input).length === 0) && !file) {
       throw new BadRequestError("At least one Change is required to update")
@@ -68,6 +80,11 @@ export const userService = {
 
     const updatedUser = await userRepository.update(id, dataToUpdate)
 
+    // A password reset is often because the account was compromised. Ending
+    // every session makes it count: without this, a stolen refresh token went on
+    // working for its week. Forgot-password already did the same.
+    if (input?.password) await authRepository.revokeAllRefreshTokensForUser(id);
+
     if (file && user.profilePublicId) {
       try {
         await deleteImageFromCloudinary(user.profilePublicId);
@@ -90,7 +107,8 @@ export const userService = {
     return toSafeData(updatedUser)
   },
 
-  async assignRole(id, role) {
+  async assignRole(id, role, { actingUserId } = {}) {
+    assertNotSelf(id, actingUserId, "change the role of");
     const user = await checkExist(id);
 
     if (user.role === role) {
@@ -100,7 +118,8 @@ export const userService = {
     return toSafeData(await userRepository.update(id, { role }));
   },
 
-  async deleteUser(id) {
+  async deleteUser(id, { actingUserId } = {}) {
+    assertNotSelf(id, actingUserId, "delete");
     const user = await checkExist(id);
 
     const deletedUser = await userRepository.delete(id);
