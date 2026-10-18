@@ -27,7 +27,7 @@ export const createCouponSchema = z
     eventId: z.string().uuid("Invalid event id format"),
   })
   .refine((date) => date.validTo > date.validFrom, {
-    message: "validTO must be greater than validFrom",
+    message: "validTo must be later than validFrom",
     path: ["validTo"],
   })
   .refine(
@@ -52,10 +52,13 @@ export const updateCouponSchema = z
       .optional(),
     validFrom: z.coerce.date().optional(),
     validTo: z.coerce.date().optional(),
+    // null removes the limit. Optional alone meant a limit, once set, could
+    // never be lifted again.
     usageLimit: z
       .number()
       .int()
       .positive("Usage limit must be a positive integer")
+      .nullable()
       .optional(),
     isActive: z.boolean().optional(),
     eventId: z.string().uuid("Invalid event id format").optional(),
@@ -63,13 +66,16 @@ export const updateCouponSchema = z
   .refine(
     (data) => !data.validFrom || !data.validTo || data.validTo > data.validFrom,
     {
-      message: "validTO must be greater than validFrom",
+      message: "validTo must be later than validFrom",
       path: ["validTo"],
     },
   )
+  // Only when a value is sent: switching the type alone compared undefined
+  // with 100, which is false, and refused the change. The service checks the
+  // stored value against the new type.
   .refine(
     (percentage) =>
-      percentage.discountType === "PERCENTAGE"
+      percentage.discountType === "PERCENTAGE" && percentage.discountValue !== undefined
         ? percentage.discountValue <= 100
         : true,
     {
@@ -87,6 +93,9 @@ export const getCouponsSchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   isActive: booleanFromText.optional(),
   discountType: z.enum(DiscountType).optional(),
+  // The repository already filtered on it; the schema dropped it before it got
+  // there, so "this event's coupons" could not be asked for.
+  eventId: z.string().uuid("Invalid event id format").optional(),
 });
 
 // model Coupon {
