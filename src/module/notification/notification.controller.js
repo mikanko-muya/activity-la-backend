@@ -8,6 +8,8 @@ import { Permissions } from "../../config/permissions.js";
 import { notificationService } from "./notification.service.js";
 import {
     createNotificationSchema,
+    eventHoldersNotificationSchema,
+    eventIdParamSchema,
     getMyNotificationsSchema,
     getNotificationsSchema,
     notificationIdSchema,
@@ -93,6 +95,26 @@ router.get(
             data: result.data,
             meta: result.meta,
         });
+    })
+);
+
+router.get(
+    "/event-holders/:eventId/count",
+    requirePermission(Permissions.notification.create),
+    validate(eventIdParamSchema, "params"),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.countEventHolders(req.params.eventId);
+        return sendSuccess(res, { statusCode: 200, message: "Ticket holders counted", data });
+    })
+);
+
+router.post(
+    "/event-holders",
+    requirePermission(Permissions.notification.create),
+    validate(eventHoldersNotificationSchema),
+    asyncHandler(async (req, res) => {
+        const data = await notificationService.notifyEventHolders(req.body);
+        return sendSuccess(res, { statusCode: 201, message: `Sent to ${data.recipients} ticket holder(s)`, data });
     })
 );
 

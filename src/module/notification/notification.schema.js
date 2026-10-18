@@ -35,3 +35,16 @@ export const createNotificationSchema = z.object({
     message: z.string().trim().min(1, "Message is required").max(1000, "Message is too long"),
     notifType: z.enum(NotificationType).default(NotificationType.SYSTEM),
 });
+
+// One message to everyone holding a paid ticket for an event - for when the
+// event moves, is cancelled, or the doors open early.
+export const eventHoldersNotificationSchema = z.object({
+    eventId: z.string().uuid("Invalid event id format"),
+    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
+    message: z.string().trim().min(1, "Message is required").max(1000, "Message is too long"),
+    notifType: z.enum(NotificationType).default(NotificationType.EVENT_REMINDER),
+});
+
+export const eventIdParamSchema = z.object({
+    eventId: z.string().uuid("Invalid event id format"),
+});

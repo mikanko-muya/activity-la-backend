@@ -54,6 +54,19 @@ const buildWhere = ({ userId, eventId, orderId, couponId, notifType, isRead }) =
 export const notificationRepository = {
     create: (data, client = prisma) => client.notification.create({ data, include }),
 
+    // Distinct, so a customer with three orders for the event is told once.
+    // Paid or completed only: a pending order holds a seat, not a ticket.
+    findTicketHolderIds: async (eventId) =>
+        (
+            await prisma.order.findMany({
+                where: { eventId, status: { in: ["PAID", "COMPLETED"] } },
+                select: { userId: true },
+                distinct: ["userId"],
+            })
+        ).map((o) => o.userId),
+
+    createMany: (rows) => prisma.notification.createMany({ data: rows }),
+
     findById: (id) => prisma.notification.findUnique({ where: { id }, include: adminInclude }),
 
     findMany: async (query, { withUser = false } = {}) => {

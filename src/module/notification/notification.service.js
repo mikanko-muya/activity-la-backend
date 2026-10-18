@@ -1,9 +1,11 @@
 import { NotFoundError } from "../../utils/errors/index.js";
 import { toPaginated } from "../../utils/pagination.js";
 import { checkExistBy } from "../../utils/resource.js";
+import { eventRepository } from "../event/event.repository.js";
 import { notificationRepository } from "./notification.repository.js";
 
 const checkExist = checkExistBy(notificationRepository.findById, "Notification");
+const checkEventExist = checkExistBy(eventRepository.findById, "Event");
 
 const assertRelationsExist = async ({ userId, eventId, orderId, couponId }) => {
     const { user, event, order, coupon } = await notificationRepository.findRelations({
@@ -67,6 +69,32 @@ export const notificationService = {
 
     async getNotificationById(id) {
         return checkExist(id);
+    },
+
+    async countEventHolders(eventId) {
+        await checkEventExist(eventId);
+        return { recipients: (await notificationRepository.findTicketHolderIds(eventId)).length };
+    },
+
+    // One row per ticket holder, written in a single statement. Nobody holding
+    // a ticket is not an error - it answers 0, and nothing is written.
+    async notifyEventHolders(input) {
+        await checkEventExist(input.eventId);
+        const userIds = await notificationRepository.findTicketHolderIds(input.eventId);
+
+        if (userIds.length > 0) {
+            await notificationRepository.createMany(
+                userIds.map((userId) => ({
+                    userId,
+                    eventId: input.eventId,
+                    title: input.title,
+                    message: input.message,
+                    notifType: input.notifType,
+                }))
+            );
+        }
+
+        return { recipients: userIds.length };
     },
 
     async createNotification(input) {
