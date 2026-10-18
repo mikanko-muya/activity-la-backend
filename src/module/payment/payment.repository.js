@@ -1,6 +1,9 @@
 import { prisma } from "../../config/prisma.config.js";
 import { paginateArgs } from "../../utils/pagination.js";
 
+// Who paid and for which event, so a payments list reads on its own instead of
+// needing an order lookup per row. Name and phone only - the customer's own
+// routes return this too, and it is their own.
 const include = {
     order: {
         select: {
@@ -10,6 +13,8 @@ const include = {
             status: true,
             totalAmount: true,
             expiresAt: true,
+            user: { select: { id: true, name: true, phone: true } },
+            event: { select: { id: true, title: true } },
         },
     },
 };
