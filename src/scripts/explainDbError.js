@@ -5,8 +5,8 @@ export const explainDbError = (error) => {
         return (
             `${error.message}\n\n` +
             "Could not use the database. Check that:\n" +
-            "  - MySQL is running:            docker compose up -d db\n" +
-            "  - DATABASE_URL in .env is right (see .env.example)\n" +
+            "  - MySQL is running (XAMPP, the MySQL service, or docker compose up -d db)\n" +
+            "  - DATABASE_URL in .env has the right port, user and password\n" +
             "  - the tables exist:            npm run setup"
         );
     }
