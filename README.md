@@ -48,7 +48,17 @@ CREATE DATABASE db_activity_la_shadow;
 
 To use Docker instead of an installed server, run `docker compose up -d db` and use `mysql://root:root_password@localhost:3309/db_activity_la`.
 
-If a script says it could not use the database, check in this order: is MySQL running, is the port right (3306 for an install, 3309 for the Docker one), are the user and password in `DATABASE_URL` right, and has `npm run setup` run.
+### When the database will not connect
+
+Run `npm run db:check` (`npm run setup` runs it first anyway). It says what is wrong without printing your password:
+
+| Error | Usually means |
+|---|---|
+| `P1000: Authentication failed` | The user or password is wrong for the server on that port. Log in with the same ones in Workbench or phpMyAdmin. XAMPP's root has no password. With both XAMPP and MySQL installed, the one on port 3306 may not be the one you think. |
+| `P1001: Can't reach database server` | MySQL is not running, or not on that port. Or an unescaped `@` in the password. |
+| `P1013: The provided database string is invalid` | The password has `@ # : / ?` in it. Write them as `%40 %23 %3A %2F %3F`. |
+| `P1010: User was denied access` | Your user cannot create the database. Create it first (see above). |
+| Editing `.env` changes nothing | `DATABASE_URL` is also set in Windows environment variables, and that one wins. `db:check` tells you when this is the case. |
 
 ## After pulling
 
@@ -64,7 +74,8 @@ If `npm run setup` says the database has drifted or needs a reset, your local da
 | Script | Does |
 |---|---|
 | `npm run dev` / `npm start` | Runs the API and restarts it on changes |
-| `npm run setup` | `db:generate` then `db:migrate` |
+| `npm run setup` | `db:check`, then `db:generate`, then `db:migrate` |
+| `npm run db:check` | Says whether `DATABASE_URL` works, and what is wrong if not |
 | `npm run db:generate` | Regenerates the Prisma client after a schema change |
 | `npm run db:migrate` | Applies migrations that have not run yet |
 | `npm run db:migrate:dev` | Creates a new migration from schema changes |
