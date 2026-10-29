@@ -1,0 +1,533 @@
+{
+    "info": {
+        "name": "Activity LA - Generate QR",
+        "description": "Generates a PhaJay BCEL QR for a 1-kip order and checks every field the app relies on.\n\nRun the folder **1. Generate QR** in order. It signs in as the seed customer, finds the `Sandbox Test (1 kip)` ticket, places an order and asks for a QR. The QR request shows the picture in the **Visualize** tab, so you can scan it with BCEL One and pay 1 kip within 5 minutes. Then send **Check payment status** to see it become SUCCESS.\n\n**2. Refusals** checks the requests that must fail. **3. Cleanup** cancels the order, which gives the seat back; skip it if you paid.\n\n**4. PhaJay direct** calls the gateway without our API, to tell a gateway problem from ours. It needs the `phajaySecretKey` variable. Set it as a *current value* only, never commit it.\n\nNeeds the API running (`npm run dev`) with the dev seed loaded (`npm run seed:dev`) and `PAYMENT_GATEWAY` unset or `phajay`.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{accessToken}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:6767/api/v1"
+        },
+        {
+            "key": "phone",
+            "value": "0202000001"
+        },
+        {
+            "key": "password",
+            "value": "Customer123!"
+        },
+        {
+            "key": "paymentMethod",
+            "value": "onepay"
+        },
+        {
+            "key": "phajayUrl",
+            "value": "https://payment-gateway.lailaolab.com/v1/api/payment/generate-bcel-qr"
+        },
+        {
+            "key": "phajaySecretKey",
+            "value": ""
+        },
+        {
+            "key": "accessToken",
+            "value": ""
+        },
+        {
+            "key": "eventId",
+            "value": ""
+        },
+        {
+            "key": "ticketTypeId",
+            "value": ""
+        },
+        {
+            "key": "orderId",
+            "value": ""
+        },
+        {
+            "key": "paymentId",
+            "value": ""
+        },
+        {
+            "key": "transactionRef",
+            "value": ""
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Shown by the QR and status requests in the Visualize tab.",
+                    "pm.collectionVariables.set('qrTemplate', `",
+                    "<div style=\"font-family:sans-serif;text-align:center;padding:16px\">",
+                    "  {{#if qrImage}}<img src=\"{{qrImage}}\" width=\"300\" height=\"300\"/>{{else}}<p>No QR: {{status}}</p>{{/if}}",
+                    "  <p><b>{{amount}} kip</b> · {{status}}</p>",
+                    "  <p>Valid until {{expires}}</p>",
+                    "  <p style=\"font-size:12px;color:#666\">PhaJay transaction {{transactionRef}}</p>",
+                    "</div>`);"
+                ]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Generate QR",
+            "item": [
+                {
+                    "name": "Login as customer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 200', () => pm.response.to.have.status(200));",
+                                    "    const { data } = pm.response.json();",
+                                    "    pm.test('returns an access token', () => pm.expect(data.accessToken).to.be.a('string').and.not.empty);",
+                                    "    pm.collectionVariables.set('accessToken', data.accessToken);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"{{phone}}\",\n    \"password\": \"{{password}}\"\n}"
+                        },
+                        "url": "{{baseUrl}}/auth/login"
+                    }
+                },
+                {
+                    "name": "Find the 1-kip sandbox ticket",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 200', () => pm.response.to.have.status(200));",
+                                    "    const ticket = pm.response.json().data.find((t) => t.name.startsWith('Sandbox Test'));",
+                                    "    pm.test('sandbox ticket exists (run npm run seed:dev if not)', () => pm.expect(ticket).to.exist);",
+                                    "    pm.test('costs 1 kip, inside the PhaJay test limit of 1-999', () => pm.expect(Number(ticket.price)).to.be.within(1, 999));",
+                                    "    pm.test('has seats left', () => pm.expect(ticket.remaining).to.be.above(0));",
+                                    "    pm.collectionVariables.set('ticketTypeId', ticket.id);",
+                                    "    pm.collectionVariables.set('eventId', ticket.eventId);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/public/ticket-types?search=Sandbox&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "public",
+                                "ticket-types"
+                            ],
+                            "query": [
+                                {
+                                    "key": "search",
+                                    "value": "Sandbox"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create order",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 201', () => pm.response.to.have.status(201));",
+                                    "    const { data } = pm.response.json();",
+                                    "    pm.test('order is PENDING', () => pm.expect(data.status).to.eql('PENDING'));",
+                                    "    pm.test('total is 1 kip', () => pm.expect(Number(data.totalAmount)).to.eql(1));",
+                                    "    pm.collectionVariables.set('orderId', data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"eventId\": \"{{eventId}}\",\n    \"ticketTypeId\": \"{{ticketTypeId}}\",\n    \"quantity\": 1\n}"
+                        },
+                        "url": "{{baseUrl}}/orders"
+                    }
+                },
+                {
+                    "name": "Generate QR",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 201', () => pm.response.to.have.status(201));",
+                                    "    const { data } = pm.response.json();",
+                                    "    pm.test('payment is PENDING for this order', () => {",
+                                    "        pm.expect(data.status).to.eql('PENDING');",
+                                    "        pm.expect(data.orderId).to.eql(pm.collectionVariables.get('orderId'));",
+                                    "        pm.expect(Number(data.amount)).to.eql(1);",
+                                    "    });",
+                                    "    pm.test('carries the PhaJay transaction id', () => pm.expect(data.transactionRef).to.be.a('string').and.not.empty);",
+                                    "    pm.test('QR is a real EMV payload, not the fake gateway', () => {",
+                                    "        pm.expect(data.qrCode).to.match(/^000201/);",
+                                    "        pm.expect(data.qrCode).to.not.include('FAKE-QR');",
+                                    "    });",
+                                    "    pm.test('has a OnePay deep link', () => pm.expect(data.deepLink).to.match(/^onepay:\\/\\//));",
+                                    "    pm.test('has a PNG of the QR', () => pm.expect(data.qrImage).to.match(/^data:image\\/png;base64,/));",
+                                    "    pm.test('expires within 5 minutes', () => {",
+                                    "        const left = new Date(data.expiresAt) - Date.now();",
+                                    "        pm.expect(left).to.be.above(0).and.at.most(5 * 60 * 1000 + 5000);",
+                                    "    });",
+                                    "    pm.collectionVariables.set('paymentId', data.id);",
+                                    "    pm.collectionVariables.set('transactionRef', data.transactionRef);",
+                                    "    pm.visualizer.set(pm.collectionVariables.get('qrTemplate'), {",
+                                    "        ...data, expires: new Date(data.expiresAt).toLocaleTimeString()",
+                                    "    });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{orderId}}\",\n    \"method\": \"{{paymentMethod}}\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                },
+                {
+                    "name": "Generate QR again (reuses the live one)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 201', () => pm.response.to.have.status(201));",
+                                    "    const { data } = pm.response.json();",
+                                    "    pm.test('same payment, no second QR at PhaJay', () => {",
+                                    "        pm.expect(data.id).to.eql(pm.collectionVariables.get('paymentId'));",
+                                    "        pm.expect(data.transactionRef).to.eql(pm.collectionVariables.get('transactionRef'));",
+                                    "    });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{orderId}}\",\n    \"method\": \"{{paymentMethod}}\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                },
+                {
+                    "name": "Check payment status",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 200', () => pm.response.to.have.status(200));",
+                                    "    const { data } = pm.response.json();",
+                                    "    pm.test('PENDING until paid, then SUCCESS', () => pm.expect(data.status).to.be.oneOf(['PENDING', 'SUCCESS']));",
+                                    "    if (data.status === 'SUCCESS') {",
+                                    "        pm.test('paid payment has a bank reference and a paid time', () => {",
+                                    "            pm.expect(data.gatewayRef).to.be.a('string').and.not.empty;",
+                                    "            pm.expect(data.paidAt).to.be.a('string');",
+                                    "        });",
+                                    "    }",
+                                    "    pm.visualizer.set(pm.collectionVariables.get('qrTemplate'), {",
+                                    "        ...data, expires: data.expiresAt ? new Date(data.expiresAt).toLocaleTimeString() : '-'",
+                                    "    });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/payments/me/{{paymentId}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Refusals",
+            "item": [
+                {
+                    "name": "No token -> 401",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('status 401', () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{orderId}}\",\n    \"method\": \"onepay\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                },
+                {
+                    "name": "LDB not supported -> 400",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('status 400', () => pm.response.to.have.status(400));",
+                                    "pm.test('says LDB is not available', () => pm.expect(pm.response.json().message).to.include('LDB'));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{orderId}}\",\n    \"method\": \"ldb_mobile\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                },
+                {
+                    "name": "Unknown method -> 400",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('status 400', () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{orderId}}\",\n    \"method\": \"cash\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                },
+                {
+                    "name": "Order that does not exist -> 404",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('status 404', () => pm.response.to.have.status(404));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"00000000-0000-4000-8000-000000000000\",\n    \"method\": \"onepay\"\n}"
+                        },
+                        "url": "{{baseUrl}}/payments"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Cleanup",
+            "item": [
+                {
+                    "name": "Cancel the order (skip if you paid)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('order is CANCELLED', () => pm.expect(pm.response.json().data.status).to.eql('CANCELLED'));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "url": "{{baseUrl}}/orders/me/{{orderId}}/cancel"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. PhaJay direct",
+            "item": [
+                {
+                    "name": "Generate BCEL QR at PhaJay",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (!pm.variables.get('phajaySecretKey')) {",
+                                    "    console.log('phajaySecretKey is not set; skipping the direct PhaJay call.');",
+                                    "    pm.execution.skipRequest();",
+                                    "}"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "{",
+                                    "    pm.test('status 200 or 201', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                                    "    const data = pm.response.json();",
+                                    "    pm.test('returns transactionId, qrCode and link', () => {",
+                                    "        pm.expect(data.transactionId).to.be.a('string').and.not.empty;",
+                                    "        pm.expect(data.qrCode).to.match(/^000201/);",
+                                    "        pm.expect(data.link).to.match(/^onepay:\\/\\//);",
+                                    "    });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "secretKey",
+                                "value": "{{phajaySecretKey}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"amount\": 1,\n    \"description\": \"Activity LA direct test\"\n}"
+                        },
+                        "url": "{{phajayUrl}}"
+                    }
+                }
+            ]
+        }
+    ]
+}
