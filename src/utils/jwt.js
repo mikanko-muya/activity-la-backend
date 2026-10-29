@@ -16,12 +16,12 @@ const MIN_SECRET_LENGTH = 32;
 
 const assertUsableSecret = (name, secret) => {
     if (!secret) {
-        throw new Error(`${name} is not set - add it to .env before starting the server`);
+        throw new Error(`${name} is not set - add it to .env before starting the server. Generate one with: npm run secret`);
     }
     if (secret.length < MIN_SECRET_LENGTH) {
         throw new Error(
             `${name} is only ${secret.length} characters - it must be at least ${MIN_SECRET_LENGTH}. ` +
-            `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+            `Generate one with: npm run secret`
         );
     }
 };

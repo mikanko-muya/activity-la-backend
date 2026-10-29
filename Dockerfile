@@ -5,11 +5,12 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# The schema goes in before the install, whose postinstall generates the client
+COPY package.json package-lock.json prisma.config.ts ./
+COPY prisma ./prisma
 RUN npm ci
 
 COPY . .
-RUN npx prisma generate
 
 EXPOSE 6767
 

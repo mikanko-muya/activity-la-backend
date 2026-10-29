@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { prisma } from "../config/prisma.config.js";
 import { userRepository } from "../module/user/user.repository.js";
 import { hashPassword } from "../utils/password.js";
+import { explainDbError } from "./explainDbError.js";
 
 dotenv.config();
 
@@ -54,7 +55,7 @@ const main = async () => {
 // run the main function and handle the error if it fails
 main()
     .catch((error) => {
-        console.error("Seed failed:", error.message);
+        console.error("Seed failed:", explainDbError(error));
         process.exitCode = 1;
     })
 //

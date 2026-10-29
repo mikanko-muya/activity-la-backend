@@ -7,10 +7,17 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "prisma generate",
     "start": "nodemon src/index.js",
+    "dev": "nodemon src/index.js",
+    "setup": "prisma generate && prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
     "seed:superadmin": "node src/scripts/seed-superadmin.js",
-    "seed:dev": "node src/scripts/seed-dev.js"
+    "seed:dev": "node src/scripts/seed-dev.js",
+    "secret": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.10.0",
@@ -32,6 +39,7 @@
     "zod": "^4.6.2"
   },
   "allowScripts": {
-    "@prisma/engines@7.10.0": true
+    "@prisma/engines@7.10.0": true,
+    "prisma@7.10.0": true
   }
 }

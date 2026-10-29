@@ -5,6 +5,7 @@ import { hashPassword } from "../utils/password.js";
 import { orderService } from "../module/order/order.service.js";
 import { paymentService } from "../module/payment/payment.service.js";
 import { notificationService } from "../module/notification/notification.service.js";
+import { explainDbError } from "./explainDbError.js";
 
 dotenv.config();
 
@@ -423,7 +424,7 @@ const main = async () => {
 
 main()
     .catch((error) => {
-        console.error("seed:dev failed:", error.message);
+        console.error("seed:dev failed:", explainDbError(error));
         process.exitCode = 1;
     })
     .finally(async () => {
