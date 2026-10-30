@@ -67,6 +67,40 @@ const CUSTOMERS = [
     { name: "Dara Vongsa", key: "dara" },
 ];
 
+// Days since each customer signed up.
+const CUSTOMER_AGE_DAYS = { noy: 110, kham: 95, somchai: 70, vanh: 50, malee: 34, bounmy: 20, phet: 9, dara: 3 };
+
+// Past sales, as [days ago, customer, event, ticket type, quantity, method], so
+// the dashboard has a history to chart and an earlier period to compare with.
+// Each sits inside its customer's age and within the ticket type's stock.
+const SALE_HISTORY = [
+    [3, "phet", "market", "entry", 3, "onepay"],
+    [6, "bounmy", "comedy", "general", 2, "bcel_one"],
+    [7, "noy", "rock", "general", 2, "onepay"],
+    [8, "somchai", "run", "5k", 1, "onepay"],
+    [10, "kham", "film", "ticket", 2, "bcel_one"],
+    [11, "vanh", "sunset", "general", 3, "onepay"],
+    [12, "bounmy", "heritage", "general", 2, "bank_transfer"],
+    [14, "noy", "photo", "seat", 1, "onepay"],
+    [15, "somchai", "sunset", "vip", 1, "bcel_one"],
+    [18, "kham", "rock", "general", 4, "onepay"],
+    [19, "malee", "coffee", "seat", 2, "onepay"],
+    [20, "vanh", "market", "entry", 5, "bcel_one"],
+    [24, "noy", "comedy", "general", 1, "onepay"],
+    [26, "somchai", "rock", "general", 2, "bank_transfer"],
+    [29, "kham", "sunset", "general", 2, "onepay"],
+    [33, "malee", "run", "10k", 2, "bcel_one"],
+    [36, "noy", "rock", "general", 3, "onepay"],
+    [41, "vanh", "sunset", "general", 2, "onepay"],
+    [45, "somchai", "comedy", "general", 2, "bcel_one"],
+    [52, "kham", "heritage", "general", 2, "onepay"],
+    [58, "noy", "film", "ticket", 4, "bank_transfer"],
+    [64, "kham", "rock", "general", 2, "onepay"],
+    [77, "kham", "sunset", "general", 4, "bcel_one"],
+    [88, "noy", "market", "entry", 6, "onepay"],
+    [104, "noy", "rock", "general", 1, "onepay"],
+];
+
 const wipe = async () => {
     const superadmins = await prisma.user.findMany({
         where: { role: "SUPERADMIN" },
@@ -106,9 +140,13 @@ const seedUsers = async () => {
             phone: "0201000001",
             password: adminHash,
             role: "ADMIN",
+            createdAt: days(-150),
         },
     });
 
+    // Sign-ups spread over months, so the dashboard's new-customer count has a
+    // previous period to compare against. Nobody buys before they joined:
+    // SALE_HISTORY below stays inside each customer's age.
     const customers = {};
     let n = 1;
     for (const c of CUSTOMERS) {
@@ -119,6 +157,7 @@ const seedUsers = async () => {
                 phone: `020200000${n++}`,
                 password: customerHash,
                 profileUrl: image(`user-${c.key}`, 200, 200),
+                createdAt: days(-CUSTOMER_AGE_DAYS[c.key]),
             },
         });
     }
@@ -130,6 +169,7 @@ const seedUsers = async () => {
             phone: "0202000099",
             password: customerHash,
             isActive: false,
+            createdAt: days(-60),
         },
     });
 
@@ -235,6 +275,7 @@ const seedEvents = async ({ categories, organizers, venues }) => {
                 organizerId: organizers[e.org].id,
                 venueId: venues[e.venue].id,
                 categoryId: categories[e.category].id,
+                createdAt: days(-120),
             },
         });
 
@@ -314,16 +355,36 @@ const seedOrders = async (events, customers) => {
         return payment;
     };
 
-    await pay("noy", await order("noy", "sunset", "general", 2, "SUNSET20"), "bcel_one"); counts.paid++;
-    await pay("kham", await order("kham", "rock", "general", 1, "ROCK50K"), "onepay"); counts.paid++;
-    await pay("somchai", await order("somchai", "rock", "vip", 2), "onepay"); counts.paid++;
-    await pay("vanh", await order("vanh", "rock", "vip", 1), "bcel_one"); counts.paid++;
-    await pay("malee", await order("malee", "market", "entry", 4, "FIRSTONE"), "onepay"); counts.paid++;
-    await pay("kham", await order("kham", "jazz", "general", 2), "bank_transfer"); counts.paid++;
+    // The services stamp everything with the current time; this moves a sale
+    // back to when it is meant to have happened. The minutes vary so a day's
+    // sales do not all share one timestamp.
+    const backdate = async (orderId, daysAgo) => {
+        const at = new Date(days(-daysAgo).getTime() - ((daysAgo * 37) % 600) * 60 * 1000);
+        await prisma.order.update({ where: { id: orderId }, data: { createdAt: at } });
+        await prisma.payment.updateMany({ where: { orderId }, data: { createdAt: at, paidAt: at } });
+        await prisma.notification.updateMany({ where: { orderId }, data: { createdAt: at } });
+    };
+
+    const sale = async (daysAgo, customer, eventKey, typeKey, quantity, method, couponCode) => {
+        const created = await order(customer, eventKey, typeKey, quantity, couponCode);
+        await pay(customer, created, method);
+        await backdate(created.id, daysAgo);
+        counts.paid++;
+    };
+
+    // Coupon sales stay inside the coupons' validity, which began 7 days ago.
+    await sale(1, "noy", "sunset", "general", 2, "bcel_one", "SUNSET20");
+    await sale(2, "kham", "rock", "general", 1, "onepay", "ROCK50K");
+    await sale(4, "somchai", "rock", "vip", 2, "onepay");
+    await sale(9, "vanh", "rock", "vip", 1, "bcel_one");
+    await sale(5, "malee", "market", "entry", 4, "onepay", "FIRSTONE");
+    await sale(13, "kham", "jazz", "general", 2, "bank_transfer");
     // Not ldb_mobile: LDB QRs are not wired yet, and the fake refuses them too.
-    await pay("somchai", await order("somchai", "comedy", "general", 2), "onepay"); counts.paid++;
-    await pay("malee", await order("malee", "photo", "seat", 1), "bank_transfer"); counts.paid++;
-    await pay("vanh", await order("vanh", "run", "10k", 2), "bcel_one"); counts.paid++;
+    await sale(17, "somchai", "comedy", "general", 2, "onepay");
+    await sale(22, "malee", "photo", "seat", 1, "bank_transfer");
+    await sale(27, "vanh", "run", "10k", 2, "bcel_one");
+
+    for (const entry of SALE_HISTORY) await sale(...entry);
 
     await order("bounmy", "coffee", "seat", 1); counts.pending++;
 
@@ -415,6 +476,7 @@ const main = async () => {
         `${orders.cancelled} cancelled, ${orders.expired} past its reservation`
     );
     console.log(`  ${paymentCount} payments, ${ticketCount} tickets issued, ${notificationCount} notifications`);
+    console.log("  sales spread over the last 3.5 months, so the dashboard has a history");
     console.log("");
     console.log("  Sign in with:");
     console.log(`    ADMIN     0201000001 / ${ADMIN_PASSWORD}`);

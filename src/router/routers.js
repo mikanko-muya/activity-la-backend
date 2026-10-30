@@ -13,6 +13,7 @@ import organizer from "../module/organizer/organizer.controller.js";
 import notification from "../module/notification/notification.controller.js";
 import ticketType from "../module/ticketType/ticketType.controller.js";
 import payment from "../module/payment/payment.controller.js";
+import dashboard from "../module/dashboard/dashboard.controller.js";
 import categoryPublic from "../module/category/category.public.controller.js";
 import eventPublic from "../module/event/event.public.controller.js";
 import venuePublic from "../module/venue/venue.public.controller.js";
@@ -40,5 +41,6 @@ router.use("/organizers", authenticate, organizer);
 router.use("/notifications", authenticate, notification);
 router.use("/ticket-types", authenticate, ticketType);
 router.use("/payments", authenticate, payment);
+router.use("/dashboard", authenticate, dashboard);
 
 export default router;

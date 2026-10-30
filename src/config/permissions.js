@@ -57,6 +57,9 @@ export const Permissions = {
     payment: {
         read: "payment:read",
     },
+    dashboard: {
+        read: "dashboard:read",
+    },
 };
 
 const flatten = (group) => Object.values(group).flatMap((actions) => Object.values(actions));
@@ -71,6 +74,7 @@ const CONTENT_PERMISSIONS = flatten({
     notification: Permissions.notification,
     ticketType: Permissions.ticketType,
     payment: Permissions.payment,
+    dashboard: Permissions.dashboard,
 });
 
 const ALL_PERMISSIONS = flatten(Permissions);
