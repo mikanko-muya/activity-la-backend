@@ -6,6 +6,7 @@ import { checkExistBy } from "../../utils/resource.js";
 import { prisma } from "../../config/prisma.config.js";
 import { normalizeCouponCode } from "../../utils/couponCode.js";
 import { notificationService } from "../notification/notification.service.js";
+import { orderCancelledMessage, orderPlacedMessage } from "../notification/notification.messages.js";
 import { orderRepository } from "./order.repository.js";
 
 const checkExist = checkExistBy(orderRepository.findById, "Order");
@@ -181,10 +182,7 @@ export const orderService = {
             userId,
             orderId: order.id,
             notifType: "PAYMENT",
-            title: "Order placed",
-            message:
-                `Your order for "${event.title}" is reserved for ${RESERVATION_MINUTES} minutes. ` +
-                `Pay ${totalAmount.toFixed(2)} to confirm your tickets.`,
+            ...orderPlacedMessage({ event, minutes: RESERVATION_MINUTES, amount: totalAmount }),
         });
 
         return orderRepository.findById(order.id);
@@ -217,10 +215,7 @@ export const orderService = {
             userId: order.userId,
             orderId: order.id,
             notifType: "PAYMENT",
-            title: "Order cancelled",
-            message:
-                `Your order for "${order.event.title}" has been cancelled and the tickets released.` +
-                (order.couponId ? " Your coupon is available to use again." : ""),
+            ...orderCancelledMessage({ event: order.event, couponReleased: Boolean(order.couponId) }),
         });
 
         return orderRepository.findById(id);

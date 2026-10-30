@@ -61,10 +61,14 @@ const topEvents = async (sales) => {
         .slice(0, TOP_EVENTS);
     if (top.length === 0) return [];
 
-    const titles = new Map(
-        (await dashboardRepository.findEventTitles(top.map((e) => e.id))).map((e) => [e.id, e.title])
+    const events = new Map(
+        (await dashboardRepository.findEventTitles(top.map((e) => e.id))).map((e) => [e.id, e])
     );
-    return top.map((e) => ({ ...e, title: titles.get(e.id) ?? "Deleted event" }));
+    return top.map((e) => ({
+        ...e,
+        title: events.get(e.id)?.title ?? "ກິດຈະກຳທີ່ຖືກລຶບແລ້ວ",
+        titleEn: events.get(e.id)?.titleEn ?? "Deleted event",
+    }));
 };
 
 export const dashboardService = {
@@ -105,6 +109,7 @@ export const dashboardService = {
             upcomingEvents: upcoming.map(({ ticketTypes, venue, ...event }) => ({
                 ...event,
                 venueName: venue?.name ?? null,
+                venueNameEn: venue?.nameEn ?? null,
                 capacity: ticketTypes.reduce((sum, t) => sum + t.quantity, 0),
                 taken: ticketTypes.reduce((sum, t) => sum + t.saleQuantity, 0),
             })),

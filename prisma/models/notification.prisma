@@ -6,8 +6,12 @@ model Notification {
   orderId  String?
   couponId String?
 
-  title     String
-  message   String
+  /// Lao; titleEn and messageEn are the English twins. Sized to what the
+  /// API accepts (200 and 1000 characters).
+  title     String           @db.VarChar(200)
+  titleEn   String           @db.VarChar(200)
+  message   String           @db.VarChar(1000)
+  messageEn String           @db.VarChar(1000)
   notifType NotificationType @default(SYSTEM)
   isRead    Boolean          @default(false)
 

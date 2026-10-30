@@ -19,6 +19,14 @@ const listFields = {
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
 };
 
+// Every notification is written in Lao and English; the reader's app picks one.
+const messageFields = {
+    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
+    titleEn: z.string().trim().min(1, "English title is required").max(200, "English title is too long"),
+    message: z.string().trim().min(1, "Message is required").max(1000, "Message is too long"),
+    messageEn: z.string().trim().min(1, "English message is required").max(1000, "English message is too long"),
+};
+
 export const getMyNotificationsSchema = z.object(listFields);
 
 export const getNotificationsSchema = z.object({
@@ -31,8 +39,7 @@ export const createNotificationSchema = z.object({
     eventId: z.string().uuid("Invalid event id format").optional(),
     orderId: z.string().uuid("Invalid order id format").optional(),
     couponId: z.string().uuid("Invalid coupon id format").optional(),
-    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
-    message: z.string().trim().min(1, "Message is required").max(1000, "Message is too long"),
+    ...messageFields,
     notifType: z.enum(NotificationType).default(NotificationType.SYSTEM),
 });
 
@@ -40,8 +47,7 @@ export const createNotificationSchema = z.object({
 // event moves, is cancelled, or the doors open early.
 export const eventHoldersNotificationSchema = z.object({
     eventId: z.string().uuid("Invalid event id format"),
-    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
-    message: z.string().trim().min(1, "Message is required").max(1000, "Message is too long"),
+    ...messageFields,
     notifType: z.enum(NotificationType).default(NotificationType.EVENT_REMINDER),
 });
 

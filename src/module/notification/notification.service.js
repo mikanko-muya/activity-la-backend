@@ -88,7 +88,9 @@ export const notificationService = {
                     userId,
                     eventId: input.eventId,
                     title: input.title,
+                    titleEn: input.titleEn,
                     message: input.message,
+                    messageEn: input.messageEn,
                     notifType: input.notifType,
                 }))
             );
@@ -104,11 +106,11 @@ export const notificationService = {
     },
 
     async notifyUser(
-        { userId, title, message, notifType, eventId = null, orderId = null, couponId = null },
+        { userId, title, titleEn, message, messageEn, notifType, eventId = null, orderId = null, couponId = null },
         client
     ) {
         return notificationRepository.create(
-            { userId, title, message, notifType, eventId, orderId, couponId },
+            { userId, title, titleEn, message, messageEn, notifType, eventId, orderId, couponId },
             client
         );
     },

@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { authenticate } from "../middleware/auth.js";
+import { readLanguage } from "../middleware/language.js";
 
 import auth from "../module/auth/auth.controller.js";
 import user from "../module/user/user.controller.js";
@@ -22,6 +23,8 @@ import ticketTypePublic from "../module/ticketType/ticketType.public.controller.
 import paymentWebhook from "../module/payment/payment.webhook.controller.js";
 
 const router = Router();
+
+router.use(readLanguage);
 
 router.use("/auth", auth);
 router.use("/public/categories", categoryPublic);

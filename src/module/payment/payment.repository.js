@@ -14,7 +14,7 @@ const include = {
             totalAmount: true,
             expiresAt: true,
             user: { select: { id: true, name: true, phone: true } },
-            event: { select: { id: true, title: true } },
+            event: { select: { id: true, title: true, titleEn: true } },
         },
     },
 };

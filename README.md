@@ -69,6 +69,28 @@ npm run setup
 
 If `npm run setup` says the database has drifted or needs a reset, your local data predates a rewritten migration. `npx prisma migrate reset` rebuilds it from scratch (it deletes your local data), then `npm run seed:dev` puts sample data back.
 
+## Languages
+
+Content is stored in Lao and English. Lao is the main language and keeps the plain column; English sits beside it in an `En` twin:
+
+| Table | Lao | English |
+|---|---|---|
+| Category | `name` | `nameEn` |
+| Event | `title`, `description` | `titleEn`, `descriptionEn` |
+| TicketType | `name`, `description` | `nameEn`, `descriptionEn` |
+| Organizer | `name`, `description` | `nameEn`, `descriptionEn` |
+| Venue | `name`, `province`, `address` | `nameEn`, `provinceEn`, `addressEn` |
+| Notification | `title`, `message` | `titleEn`, `messageEn` |
+
+- Both are required wherever the Lao one is. An optional description is given in both languages or in neither (`pairedTranslation` in `utils/schema.js`).
+- Search matches either language.
+- Responses carry both, which the admin forms need. Add `?lang=lo` or `?lang=en` to any request to get one language instead: each pair folds into its usual name (`title` holds that language and `titleEn` is left out), nested records included. That is what a customer app should send.
+- Notifications the server writes itself are worded in both, in `module/notification/notification.messages.js`.
+
+To translate a new field: add the `En` column in the model and a migration, add it to the create and update schemas, and select it wherever the Lao field is selected. `?lang` then picks it up without further changes.
+
+The migration that added the twins copied each Lao value into English for existing rows, so older data shows the same text in both until someone edits it. `npm run seed:dev` gives fresh data in real Lao and English.
+
 ## Scripts
 
 | Script | Does |

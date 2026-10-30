@@ -132,7 +132,7 @@
                                 "exec": [
                                     "{",
                                     "    pm.test('status 200', () => pm.response.to.have.status(200));",
-                                    "    const ticket = pm.response.json().data.find((t) => t.name.startsWith('Sandbox Test'));",
+                                    "    const ticket = pm.response.json().data.find((t) => t.nameEn.startsWith('Sandbox Test'));",
                                     "    pm.test('sandbox ticket exists (run npm run seed:dev if not)', () => pm.expect(ticket).to.exist);",
                                     "    pm.test('costs 1 kip, inside the PhaJay test limit of 1-999', () => pm.expect(Number(ticket.price)).to.be.within(1, 999));",
                                     "    pm.test('has seats left', () => pm.expect(ticket.remaining).to.be.above(0));",

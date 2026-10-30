@@ -11,6 +11,7 @@ import { generateQrPayload, generateTicketCode, generateTransactionRef } from ".
 import QRCode from "qrcode";
 
 import { notificationService } from "../notification/notification.service.js";
+import { paymentFailedMessage, paymentReceivedMessage } from "../notification/notification.messages.js";
 import { orderRepository } from "../order/order.repository.js";
 import { getPaymentGateway } from "./gateway/index.js";
 import { paymentRepository } from "./payment.repository.js";
@@ -179,28 +180,14 @@ export const paymentService = {
 
         const ticketCount = succeeded ? await paymentRepository.countTicketsByOrderId(order.id) : 0;
 
-        await notificationService.notifyUserSafely(
-            succeeded
-                ? {
-                    userId: order.userId,
-                    orderId: order.id,
-                    notifType: "PAYMENT",
-                    title: "Payment received",
-                    message:
-                        `We received ${Number(payment.amount).toFixed(2)} for "${order.event.title}". ` +
-                        `${ticketCount} ticket(s) are ready in your order.`,
-                }
-                : {
-                    userId: order.userId,
-                    orderId: order.id,
-                    notifType: "PAYMENT",
-                    title: "Payment failed",
-                    message:
-                        `Your payment for "${order.event.title}" did not go through` +
-                        `${input.failureReason ? `: ${input.failureReason}` : ""}. ` +
-                        `You can try again while the reservation lasts.`,
-                }
-        );
+        await notificationService.notifyUserSafely({
+            userId: order.userId,
+            orderId: order.id,
+            notifType: "PAYMENT",
+            ...(succeeded
+                ? paymentReceivedMessage({ event: order.event, amount: payment.amount, ticketCount })
+                : paymentFailedMessage({ event: order.event, reason: input.failureReason })),
+        });
 
         return paymentRepository.findById(payment.id);
     },

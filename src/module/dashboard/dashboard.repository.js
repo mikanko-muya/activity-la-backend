@@ -29,7 +29,7 @@ export const dashboardRepository = {
         prisma.user.count({ where: { role: "USER", createdAt: { gte: from, lt: to } } }),
 
     findEventTitles: (ids) =>
-        prisma.event.findMany({ where: { id: { in: ids } }, select: { id: true, title: true } }),
+        prisma.event.findMany({ where: { id: { in: ids } }, select: { id: true, title: true, titleEn: true } }),
 
     findUpcomingEvents: ({ now, take }) =>
         prisma.event.findMany({
@@ -39,9 +39,10 @@ export const dashboardRepository = {
             select: {
                 id: true,
                 title: true,
+                titleEn: true,
                 startAt: true,
                 coverImgUrl: true,
-                venue: { select: { name: true } },
+                venue: { select: { name: true, nameEn: true } },
                 ticketTypes: { select: { quantity: true, saleQuantity: true } },
             },
         }),
@@ -57,7 +58,7 @@ export const dashboardRepository = {
                 expiresAt: true,
                 createdAt: true,
                 user: { select: { id: true, name: true } },
-                event: { select: { id: true, title: true } },
+                event: { select: { id: true, title: true, titleEn: true } },
             },
         }),
 

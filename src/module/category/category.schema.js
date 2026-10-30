@@ -6,18 +6,20 @@ export const categoryIdSchema = z.object({
 
 export const createCategorySchema = z.object({
     name: z.string().trim().min(1, "Name is required").max(100, "Name must be at most 100 characters"),
+    nameEn: z.string().trim().min(1, "English name is required").max(100, "English name must be at most 100 characters"),
     iconUrl : z.string().optional(),
 
 })
 
 export const updateCategorySchema = z.object({
-    name: z.string().trim().min(1, "Name is required").max(100, "Name must be at most 100 characters").optional()
+    name: z.string().trim().min(1, "Name is required").max(100, "Name must be at most 100 characters").optional(),
+    nameEn: z.string().trim().min(1, "English name is required").max(100, "English name must be at most 100 characters").optional(),
 })
 
 export const getCategoriesSchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
     search: z.string().trim().min(1).optional(),
-    sortBy: z.enum(["createdAt", "name"]).default("createdAt"),
+    sortBy: z.enum(["createdAt", "name", "nameEn"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc")
 }) 

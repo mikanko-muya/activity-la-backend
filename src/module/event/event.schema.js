@@ -13,7 +13,9 @@ export const categoryIdParamSchema = z.object({
 export const createEventSchema = z
     .object({
         title: z.string().trim().min(1, "Title is required").max(255),
+        titleEn: z.string().trim().min(1, "English title is required").max(255),
         description: z.string().trim().min(1, "Description is required"),
+        descriptionEn: z.string().trim().min(1, "English description is required"),
         startAt: z.coerce.date({ message: "startAt must be a valid date" }),
         endAt: z.coerce.date({ message: "endAt must be a valid date" }),
         isFree: booleanFromText.optional(),
@@ -29,7 +31,9 @@ export const createEventSchema = z
 export const updateEventSchema = z
     .object({
         title: z.string().trim().min(1, "Title is required").max(255).optional(),
+        titleEn: z.string().trim().min(1, "English title is required").max(255).optional(),
         description: z.string().trim().min(1, "Description is required").optional(),
+        descriptionEn: z.string().trim().min(1, "English description is required").optional(),
         startAt: z.coerce.date({ message: "startAt must be a valid date" }).optional(),
         endAt: z.coerce.date({ message: "endAt must be a valid date" }).optional(),
         isFree: booleanFromText.optional(),
@@ -52,6 +56,6 @@ export const getEventsSchema = z.object({
     venueId: z.string().uuid().optional(),
     eventStatus: z.enum(EventStatus).optional(),
     isFree: booleanFromText.optional(),
-    sortBy: z.enum(["createdAt", "startAt", "title"]).default("startAt"),
+    sortBy: z.enum(["createdAt", "startAt", "title", "titleEn"]).default("startAt"),
     sortOrder: z.enum(["asc", "desc"]).default("asc"),
 });

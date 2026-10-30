@@ -6,6 +6,7 @@ const include = {
         select: {
             id: true,
             title: true,
+            titleEn: true,
             eventStatus: true,
             startAt: true,
             endAt: true,
@@ -17,7 +18,9 @@ const publicFields = {
     id: true,
     eventId: true,
     name: true,
+    nameEn: true,
     description: true,
+    descriptionEn: true,
     price: true,
     quantity: true,
     saleQuantity: true,
@@ -29,14 +32,18 @@ const publicFields = {
 const buildWhere = (query) => ({
     ...(query.status && { status: query.status }),
     ...(query.eventId && { eventId: query.eventId }),
-    ...(query.search && { name: { contains: query.search } }),
+    ...(query.search && {
+        OR: [{ name: { contains: query.search } }, { nameEn: { contains: query.search } }],
+    }),
 });
 
 const publicWhere = (query) => ({
     status: "ACTIVE",
     event: { eventStatus: "PUBLISHED" },
     ...(query.eventId && { eventId: query.eventId }),
-    ...(query.search && { name: { contains: query.search } }),
+    ...(query.search && {
+        OR: [{ name: { contains: query.search } }, { nameEn: { contains: query.search } }],
+    }),
 });
 
 export const ticketTypeRepository = {

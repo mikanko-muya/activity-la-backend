@@ -6,6 +6,7 @@ const include = {
         select: {
             id: true,
             title: true,
+            titleEn: true,
             startAt: true,
         },
     },

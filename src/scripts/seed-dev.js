@@ -31,30 +31,50 @@ const image = (seed, w = 800, h = 450) => `https://picsum.photos/seed/${seed}/${
 const ADMIN_PASSWORD = "Admin1234!";
 const CUSTOMER_PASSWORD = "Customer123!";
 
+// Every translated field is [Lao, English]: Lao is the main language and goes in
+// the plain column, English in its `En` twin.
 const CATEGORY_NAMES = [
-    "Concert", "Festival", "Sports", "Workshop", "Exhibition", "Conference", "Theatre",
-    "Comedy", "Food & Drink", "Market", "Charity", "Film", "Nightlife", "Family",
-    "Wellness", "Technology", "Education", "Art", "Dance", "Music Class", "Gaming",
-    "Fashion", "Photography", "Travel", "Culture",
+    ["ຄອນເສີດ", "Concert"], ["ງານບຸນ", "Festival"], ["ກິລາ", "Sports"], ["ຝຶກອົບຮົມ", "Workshop"],
+    ["ງານວາງສະແດງ", "Exhibition"], ["ກອງປະຊຸມ", "Conference"], ["ລະຄອນ", "Theatre"],
+    ["ຕະຫຼົກ", "Comedy"], ["ອາຫານ ແລະ ເຄື່ອງດື່ມ", "Food & Drink"], ["ຕະຫຼາດ", "Market"],
+    ["ການກຸສົນ", "Charity"], ["ຮູບເງົາ", "Film"], ["ຊີວິດກາງຄືນ", "Nightlife"], ["ຄອບຄົວ", "Family"],
+    ["ສຸຂະພາບ", "Wellness"], ["ເຕັກໂນໂລຊີ", "Technology"], ["ການສຶກສາ", "Education"],
+    ["ສິລະປະ", "Art"], ["ການເຕັ້ນ", "Dance"], ["ຮຽນດົນຕີ", "Music Class"], ["ເກມ", "Gaming"],
+    ["ແຟຊັ່ນ", "Fashion"], ["ການຖ່າຍຮູບ", "Photography"], ["ທ່ອງທ່ຽວ", "Travel"], ["ວັດທະນະທຳ", "Culture"],
 ];
 
 const ORGANIZERS = [
-    { name: "Mekong Live", email: "hello@mekonglive.seed", phone: "0205550101", description: "Concerts and festivals along the river." },
-    { name: "Vientiane Events Co", email: "team@vteevents.seed", phone: "0205550102", description: "City events, markets and night life." },
-    { name: "Lao Makers Club", email: "club@laomakers.seed", phone: "0205550103", description: "Workshops and classes for people who make things." },
-    { name: "Heritage Lao Tours", email: "info@heritagelao.seed", phone: "0205550104", description: "Walking tours and cultural experiences." },
-    { name: "Tech Laos", email: "community@techlaos.seed", phone: "0205550105", description: "Meetups and conferences for the tech community." },
-    { name: "Good Cause Laos", email: "give@goodcause.seed", phone: "0205550106", description: "Charity runs and fundraisers." },
+    { name: ["ແມ່ຂອງ ໄລຟ໌", "Mekong Live"], email: "hello@mekonglive.seed", phone: "0205550101",
+      description: ["ຄອນເສີດ ແລະ ງານບຸນ ລຽບແຄມແມ່ນ້ຳຂອງ.", "Concerts and festivals along the river."] },
+    { name: ["ບໍລິສັດ ວຽງຈັນ ອີເວັນ", "Vientiane Events Co"], email: "team@vteevents.seed", phone: "0205550102",
+      description: ["ງານໃນຕົວເມືອງ, ຕະຫຼາດ ແລະ ຊີວິດກາງຄືນ.", "City events, markets and night life."] },
+    { name: ["ສະໂມສອນ ນັກສ້າງສັນລາວ", "Lao Makers Club"], email: "club@laomakers.seed", phone: "0205550103",
+      description: ["ຝຶກອົບຮົມ ແລະ ຫ້ອງຮຽນ ສຳລັບຄົນທີ່ມັກສ້າງສິ່ງຂອງ.", "Workshops and classes for people who make things."] },
+    { name: ["ມໍລະດົກລາວ ທົວ", "Heritage Lao Tours"], email: "info@heritagelao.seed", phone: "0205550104",
+      description: ["ທົວຍ່າງຊົມເມືອງ ແລະ ປະສົບການດ້ານວັດທະນະທຳ.", "Walking tours and cultural experiences."] },
+    { name: ["ເທັກ ລາວ", "Tech Laos"], email: "community@techlaos.seed", phone: "0205550105",
+      description: ["ງານພົບປະ ແລະ ກອງປະຊຸມ ສຳລັບຊຸມຊົນເຕັກໂນໂລຊີ.", "Meetups and conferences for the tech community."] },
+    { name: ["ກຸສົນ ລາວ", "Good Cause Laos"], email: "give@goodcause.seed", phone: "0205550106",
+      description: ["ງານແລ່ນການກຸສົນ ແລະ ງານລະດົມທຶນ.", "Charity runs and fundraisers."] },
 ];
 
 const VENUES = [
-    { name: "National Cultural Hall", province: "Vientiane", address: "Samsenthai Road" },
-    { name: "Chao Anouvong Park", province: "Vientiane", address: "Fa Ngum Road, riverside" },
-    { name: "Luang Prabang Night Market", province: "Luang Prabang", address: "Sisavangvong Road" },
-    { name: "Pakse Riverside Square", province: "Champasak", address: "Route 13, Pakse" },
-    { name: "Vang Vieng Lagoon Stage", province: "Vientiane Province", address: "Blue Lagoon 1" },
-    { name: "ITECC Convention Centre", province: "Vientiane", address: "Kaysone Phomvihane Avenue" },
+    { name: ["ຫໍວັດທະນະທຳແຫ່ງຊາດ", "National Cultural Hall"], province: ["ນະຄອນຫຼວງວຽງຈັນ", "Vientiane"],
+      address: ["ຖະໜົນສາມແສນໄທ", "Samsenthai Road"] },
+    { name: ["ສວນເຈົ້າອານຸວົງ", "Chao Anouvong Park"], province: ["ນະຄອນຫຼວງວຽງຈັນ", "Vientiane"],
+      address: ["ຖະໜົນຟ້າງຸ່ມ, ລຽບແຄມນ້ຳຂອງ", "Fa Ngum Road, riverside"] },
+    { name: ["ຕະຫຼາດມືດ ຫຼວງພະບາງ", "Luang Prabang Night Market"], province: ["ຫຼວງພະບາງ", "Luang Prabang"],
+      address: ["ຖະໜົນສີສະຫວ່າງວົງ", "Sisavangvong Road"] },
+    { name: ["ລານແຄມນ້ຳ ປາກເຊ", "Pakse Riverside Square"], province: ["ຈຳປາສັກ", "Champasak"],
+      address: ["ທາງເລກ 13, ປາກເຊ", "Route 13, Pakse"] },
+    { name: ["ເວທີບຶງ ວັງວຽງ", "Vang Vieng Lagoon Stage"], province: ["ແຂວງວຽງຈັນ", "Vientiane Province"],
+      address: ["ບຶງສີຟ້າ 1", "Blue Lagoon 1"] },
+    { name: ["ສູນປະຊຸມ ໄອເທັກ", "ITECC Convention Centre"], province: ["ນະຄອນຫຼວງວຽງຈັນ", "Vientiane"],
+      address: ["ຖະໜົນໄກສອນ ພົມວິຫານ", "Kaysone Phomvihane Avenue"] },
 ];
+
+// [Lao, English] into { field, fieldEn } - how every pair above reaches Prisma.
+const pair = (field, [lao, english]) => ({ [field]: lao, [`${field}En`]: english });
 
 const CUSTOMERS = [
     { name: "Noy Phommachanh", key: "noy" },
@@ -177,18 +197,28 @@ const seedUsers = async () => {
 };
 
 const seedCatalog = async () => {
+    // Keyed by English name, which is how EVENTS refers to them.
     const categories = {};
-    for (const name of CATEGORY_NAMES) {
-        const slug = name.toLowerCase().replace(/[^a-z]+/g, "-");
-        categories[name] = await prisma.category.create({
-            data: { name, iconUrl: image(`cat-${slug}`, 96, 96) },
+    for (const names of CATEGORY_NAMES) {
+        const english = names[1];
+        const slug = english.toLowerCase().replace(/[^a-z]+/g, "-");
+        categories[english] = await prisma.category.create({
+            data: { ...pair("name", names), iconUrl: image(`cat-${slug}`, 96, 96) },
         });
     }
 
     const organizers = [];
     for (const [i, o] of ORGANIZERS.entries()) {
         organizers.push(
-            await prisma.organizer.create({ data: { ...o, logoUrl: image(`org-${i}`, 160, 160) } })
+            await prisma.organizer.create({
+                data: {
+                    ...pair("name", o.name),
+                    ...pair("description", o.description),
+                    email: o.email,
+                    phone: o.phone,
+                    logoUrl: image(`org-${i}`, 160, 160),
+                },
+            })
         );
     }
 
@@ -196,7 +226,12 @@ const seedCatalog = async () => {
     for (const v of VENUES) {
         venues.push(
             await prisma.venue.create({
-                data: { ...v, mapUrl: `https://maps.google.com/?q=${encodeURIComponent(v.name)}` },
+                data: {
+                    ...pair("name", v.name),
+                    ...pair("province", v.province),
+                    ...pair("address", v.address),
+                    mapUrl: `https://maps.google.com/?q=${encodeURIComponent(v.name[1])}`,
+                },
             })
         );
     }
@@ -206,55 +241,59 @@ const seedCatalog = async () => {
 
 // Every event starts PUBLISHED so the order service will sell tickets for it;
 // the ones meant to end up DRAFT or CANCELLED are moved there after sales.
+const GENERAL = ["ທົ່ວໄປ", "General"];
+const SEAT = ["ບ່ອນນັ່ງ", "Seat"];
+const ENTRY = ["ບັດເຂົ້າງານ", "Entry"];
+
 const EVENTS = [
-    { key: "sunset", title: "Mekong Sunset Festival", category: "Festival", org: 0, venue: 1, in: 12, hours: 6, status: "PUBLISHED",
+    { key: "sunset", title: ["ງານບຸນ ຕາເວັນຕົກດິນ ແມ່ນ້ຳຂອງ", "Mekong Sunset Festival"], category: "Festival", org: 0, venue: 1, in: 12, hours: 6, status: "PUBLISHED",
       types: [
-          { key: "early", name: "Early Bird", price: 100000, quantity: 200, saleStart: days(-30), saleEnd: days(-2) },
-          { key: "general", name: "General", price: 150000, quantity: 500 },
-          { key: "vip", name: "VIP", price: 450000, quantity: 50 },
+          { key: "early", name: ["ຈອງກ່ອນ", "Early Bird"], price: 100000, quantity: 200, saleStart: days(-30), saleEnd: days(-2) },
+          { key: "general", name: GENERAL, price: 150000, quantity: 500 },
+          { key: "vip", name: ["VIP", "VIP"], price: 450000, quantity: 50 },
       ] },
-    { key: "rock", title: "Vientiane Rock Night", category: "Concert", org: 0, venue: 0, in: 20, hours: 4, status: "PUBLISHED",
+    { key: "rock", title: ["ຄືນຣັອກ ວຽງຈັນ", "Vientiane Rock Night"], category: "Concert", org: 0, venue: 0, in: 20, hours: 4, status: "PUBLISHED",
       types: [
-          { key: "general", name: "General", price: 200000, quantity: 300 },
-          { key: "vip", name: "VIP Front Row", price: 600000, quantity: 3 },
+          { key: "general", name: GENERAL, price: 200000, quantity: 300 },
+          { key: "vip", name: ["VIP ແຖວໜ້າ", "VIP Front Row"], price: 600000, quantity: 3 },
       ] },
-    { key: "heritage", title: "Luang Prabang Heritage Walk", category: "Travel", org: 3, venue: 2, in: 8, hours: 3, status: "PUBLISHED",
-      types: [{ key: "general", name: "Walker", price: 80000, quantity: 40 }] },
+    { key: "heritage", title: ["ຍ່າງຊົມມໍລະດົກ ຫຼວງພະບາງ", "Luang Prabang Heritage Walk"], category: "Travel", org: 3, venue: 2, in: 8, hours: 3, status: "PUBLISHED",
+      types: [{ key: "general", name: ["ຜູ້ຍ່າງ", "Walker"], price: 80000, quantity: 40 }] },
     // "Sandbox Test" costs 1 kip because the PhaJay test account only takes
     // 1-999 kip - it is the ticket to buy when checking a real QR payment.
-    { key: "coffee", title: "Lao Coffee Workshop", category: "Workshop", org: 2, venue: 0, in: 5, hours: 2, status: "PUBLISHED",
+    { key: "coffee", title: ["ຝຶກອົບຮົມ ກາເຟລາວ", "Lao Coffee Workshop"], category: "Workshop", org: 2, venue: 0, in: 5, hours: 2, status: "PUBLISHED",
       types: [
-          { key: "seat", name: "Seat", price: 120000, quantity: 20 },
-          { key: "sandbox", name: "Sandbox Test (1 kip)", price: 1, quantity: 100 },
+          { key: "seat", name: SEAT, price: 120000, quantity: 20 },
+          { key: "sandbox", name: ["ທົດສອບ Sandbox (1 ກີບ)", "Sandbox Test (1 kip)"], price: 1, quantity: 100 },
       ] },
-    { key: "tech", title: "Tech Meetup Vientiane", category: "Technology", org: 4, venue: 5, in: 15, hours: 3, status: "PUBLISHED", isFree: true,
-      types: [{ key: "free", name: "Free Pass", price: 0, quantity: 100 }] },
-    { key: "market", title: "Pakse Food Market", category: "Food & Drink", org: 1, venue: 3, in: 3, hours: 5, status: "PUBLISHED",
-      types: [{ key: "entry", name: "Entry", price: 20000, quantity: 1000 }] },
-    { key: "comedy", title: "Stand-up Comedy Night", category: "Comedy", org: 1, venue: 0, in: 25, hours: 2, status: "PUBLISHED",
+    { key: "tech", title: ["ງານພົບປະ ເຕັກໂນໂລຊີ ວຽງຈັນ", "Tech Meetup Vientiane"], category: "Technology", org: 4, venue: 5, in: 15, hours: 3, status: "PUBLISHED", isFree: true,
+      types: [{ key: "free", name: ["ບັດເຂົ້າຟຣີ", "Free Pass"], price: 0, quantity: 100 }] },
+    { key: "market", title: ["ຕະຫຼາດອາຫານ ປາກເຊ", "Pakse Food Market"], category: "Food & Drink", org: 1, venue: 3, in: 3, hours: 5, status: "PUBLISHED",
+      types: [{ key: "entry", name: ENTRY, price: 20000, quantity: 1000 }] },
+    { key: "comedy", title: ["ຄືນຕະຫຼົກ ສະແຕນອັບ", "Stand-up Comedy Night"], category: "Comedy", org: 1, venue: 0, in: 25, hours: 2, status: "PUBLISHED",
       types: [
-          { key: "general", name: "General", price: 100000, quantity: 120 },
-          { key: "balcony", name: "Balcony", price: 80000, quantity: 40, status: "INACTIVE" },
+          { key: "general", name: GENERAL, price: 100000, quantity: 120 },
+          { key: "balcony", name: ["ລະບຽງ", "Balcony"], price: 80000, quantity: 40, status: "INACTIVE" },
       ] },
-    { key: "run", title: "Charity Fun Run", category: "Charity", org: 5, venue: 1, in: 30, hours: 4, status: "PUBLISHED",
+    { key: "run", title: ["ງານແລ່ນ ເພື່ອການກຸສົນ", "Charity Fun Run"], category: "Charity", org: 5, venue: 1, in: 30, hours: 4, status: "PUBLISHED",
       types: [
-          { key: "5k", name: "5K", price: 50000, quantity: 400 },
-          { key: "10k", name: "10K", price: 70000, quantity: 300 },
+          { key: "5k", name: ["5 ກມ", "5K"], price: 50000, quantity: 400 },
+          { key: "10k", name: ["10 ກມ", "10K"], price: 70000, quantity: 300 },
       ] },
-    { key: "photo", title: "Photography Masterclass", category: "Photography", org: 2, venue: 5, in: 40, hours: 6, status: "PUBLISHED",
-      types: [{ key: "seat", name: "Seat", price: 250000, quantity: 15 }] },
-    { key: "film", title: "Indie Film Screening", category: "Film", org: 1, venue: 0, in: 10, hours: 2, status: "PUBLISHED",
-      types: [{ key: "ticket", name: "Ticket", price: 60000, quantity: 80 }] },
-    { key: "countdown", title: "New Year Countdown", category: "Nightlife", org: 0, venue: 1, in: 80, hours: 5, status: "DRAFT",
-      types: [{ key: "general", name: "General", price: 150000, quantity: 1000 }] },
-    { key: "art", title: "Art Exhibition Opening", category: "Art", org: 2, venue: 2, in: 45, hours: 3, status: "DRAFT", isFree: true,
-      types: [{ key: "entry", name: "Entry", price: 0, quantity: 200 }] },
-    { key: "boat", title: "Boat Racing Viewing Deck", category: "Sports", org: 3, venue: 1, in: 60, hours: 8, status: "DRAFT",
-      types: [{ key: "deck", name: "Deck", price: 300000, quantity: 60 }] },
-    { key: "jazz", title: "Jazz by the River", category: "Concert", org: 0, venue: 4, in: 18, hours: 3, status: "CANCELLED",
-      types: [{ key: "general", name: "General", price: 180000, quantity: 200 }] },
-    { key: "retreat", title: "Spring Wellness Retreat", category: "Wellness", org: 3, venue: 4, in: 35, hours: 48, status: "CANCELLED",
-      types: [{ key: "pass", name: "Weekend Pass", price: 500000, quantity: 30 }] },
+    { key: "photo", title: ["ຫ້ອງຮຽນ ການຖ່າຍຮູບ ຂັ້ນສູງ", "Photography Masterclass"], category: "Photography", org: 2, venue: 5, in: 40, hours: 6, status: "PUBLISHED",
+      types: [{ key: "seat", name: SEAT, price: 250000, quantity: 15 }] },
+    { key: "film", title: ["ສາຍຮູບເງົາ ອິດສະຫຼະ", "Indie Film Screening"], category: "Film", org: 1, venue: 0, in: 10, hours: 2, status: "PUBLISHED",
+      types: [{ key: "ticket", name: ["ປີ້", "Ticket"], price: 60000, quantity: 80 }] },
+    { key: "countdown", title: ["ງານນັບຖອຍຫຼັງ ປີໃໝ່", "New Year Countdown"], category: "Nightlife", org: 0, venue: 1, in: 80, hours: 5, status: "DRAFT",
+      types: [{ key: "general", name: GENERAL, price: 150000, quantity: 1000 }] },
+    { key: "art", title: ["ພິທີເປີດງານວາງສະແດງສິລະປະ", "Art Exhibition Opening"], category: "Art", org: 2, venue: 2, in: 45, hours: 3, status: "DRAFT", isFree: true,
+      types: [{ key: "entry", name: ENTRY, price: 0, quantity: 200 }] },
+    { key: "boat", title: ["ບ່ອນນັ່ງຊົມ ບຸນຊ່ວງເຮືອ", "Boat Racing Viewing Deck"], category: "Sports", org: 3, venue: 1, in: 60, hours: 8, status: "DRAFT",
+      types: [{ key: "deck", name: ["ບ່ອນນັ່ງຊົມ", "Deck"], price: 300000, quantity: 60 }] },
+    { key: "jazz", title: ["ແຈັສ ແຄມແມ່ນ້ຳ", "Jazz by the River"], category: "Concert", org: 0, venue: 4, in: 18, hours: 3, status: "CANCELLED",
+      types: [{ key: "general", name: GENERAL, price: 180000, quantity: 200 }] },
+    { key: "retreat", title: ["ພັກຜ່ອນເພື່ອສຸຂະພາບ ລະດູໃບໄມ້ປົ່ງ", "Spring Wellness Retreat"], category: "Wellness", org: 3, venue: 4, in: 35, hours: 48, status: "CANCELLED",
+      types: [{ key: "pass", name: ["ບັດທ້າຍອາທິດ", "Weekend Pass"], price: 500000, quantity: 30 }] },
 ];
 
 const seedEvents = async ({ categories, organizers, venues }) => {
@@ -264,9 +303,13 @@ const seedEvents = async ({ categories, organizers, venues }) => {
         const startAt = days(e.in);
         const event = await prisma.event.create({
             data: {
-                title: e.title,
-                description: `${e.title} - seeded for local development. ` +
-                    "Long enough to check how the admin table and the public page handle a real paragraph of text.",
+                ...pair("title", e.title),
+                ...pair("description", [
+                    `${e.title[0]} - ຂໍ້ມູນທົດສອບ ສຳລັບການພັດທະນາ. ` +
+                        "ຍາວພໍທີ່ຈະກວດເບິ່ງວ່າ ຕາຕະລາງຂອງແອັດມິນ ແລະ ໜ້າສາທາລະນະ ສະແດງຂໍ້ຄວາມຍາວເປັນຫຍໍ້ໜ້າໄດ້ດີແນວໃດ.",
+                    `${e.title[1]} - seeded for local development. ` +
+                        "Long enough to check how the admin table and the public page handle a real paragraph of text.",
+                ]),
                 coverImgUrl: image(`event-${e.key}`),
                 startAt,
                 endAt: new Date(startAt.getTime() + e.hours * 60 * 60 * 1000),
@@ -284,7 +327,7 @@ const seedEvents = async ({ categories, organizers, venues }) => {
             types[t.key] = await prisma.ticketType.create({
                 data: {
                     eventId: event.id,
-                    name: t.name,
+                    ...pair("name", t.name),
                     price: t.price,
                     quantity: t.quantity,
                     saleStart: t.saleStart ?? null,
@@ -421,8 +464,11 @@ const seedNotifications = async (customers, coupons, events) => {
             userId: customer.id,
             couponId: coupons.sunset.id,
             notifType: "PROMOTION",
-            title: "20% off Mekong Sunset Festival",
-            message: "Use SUNSET20 at checkout before the festival sells out.",
+            ...pair("title", ["ຫຼຸດ 20% ງານບຸນ ຕາເວັນຕົກດິນ ແມ່ນ້ຳຂອງ", "20% off Mekong Sunset Festival"]),
+            ...pair("message", [
+                "ໃຊ້ລະຫັດ SUNSET20 ຕອນຊຳລະເງິນ ກ່ອນປີ້ຈະໝົດ.",
+                "Use SUNSET20 at checkout before the festival sells out.",
+            ]),
         });
     }
 
@@ -430,15 +476,21 @@ const seedNotifications = async (customers, coupons, events) => {
         userId: customers.kham.id,
         eventId: events.jazz.id,
         notifType: "EVENT_REMINDER",
-        title: "Jazz by the River has been cancelled",
-        message: "The organizer cancelled this event. Your payment will be refunded.",
+        ...pair("title", ["ງານ ແຈັສ ແຄມແມ່ນ້ຳ ຖືກຍົກເລີກແລ້ວ", "Jazz by the River has been cancelled"]),
+        ...pair("message", [
+            "ຜູ້ຈັດງານໄດ້ຍົກເລີກງານນີ້. ທ່ານຈະໄດ້ຮັບເງິນຄືນ.",
+            "The organizer cancelled this event. Your payment will be refunded.",
+        ]),
     });
 
     await notificationService.createNotification({
         userId: customers.bounmy.id,
         notifType: "SYSTEM",
-        title: "Welcome to Activity LA",
-        message: "Find events near you and keep your tickets in one place.",
+        ...pair("title", ["ຍິນດີຕ້ອນຮັບສູ່ Activity LA", "Welcome to Activity LA"]),
+        ...pair("message", [
+            "ຊອກຫາກິດຈະກຳໃກ້ທ່ານ ແລະ ເກັບປີ້ທັງໝົດໄວ້ໃນບ່ອນດຽວ.",
+            "Find events near you and keep your tickets in one place.",
+        ]),
     });
 };
 

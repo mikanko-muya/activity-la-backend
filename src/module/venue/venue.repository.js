@@ -5,8 +5,11 @@ const buildWhere = (query) => ({
     ...(query.search && {
         OR: [
             { name: { contains: query.search } },
+            { nameEn: { contains: query.search } },
             { address: { contains: query.search } },
+            { addressEn: { contains: query.search } },
             { province: { contains: query.search } },
+            { provinceEn: { contains: query.search } },
         ],
     }),
 });

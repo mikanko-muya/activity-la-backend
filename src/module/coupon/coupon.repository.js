@@ -2,7 +2,7 @@ import { prisma } from "../../config/prisma.config.js";
 import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
-  event: { select: { id: true, title: true } },
+  event: { select: { id: true, title: true, titleEn: true } },
 };
 
 const buildWhere = (query) => ({

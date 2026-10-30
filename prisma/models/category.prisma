@@ -1,6 +1,9 @@
 model Category {
   id           String  @id @default(uuid()) @db.VarChar(36)
+  /// Lao, the main language. Every translated field pairs a Lao column with an
+  /// `En` twin, and both are required wherever the Lao one is.
   name         String  @unique
+  nameEn       String  @unique
   iconUrl      String?
   iconPublicId String?
 

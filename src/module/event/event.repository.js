@@ -2,7 +2,7 @@ import { prisma } from "../../config/prisma.config.js";
 import { paginateArgs } from "../../utils/pagination.js";
 
 const include = {
-    organizer: { select: { id: true, name: true, logoUrl: true } },
+    organizer: { select: { id: true, name: true, nameEn: true, logoUrl: true } },
     venue: true,
     category: true,
 };
@@ -16,7 +16,9 @@ const buildWhere = (query) => ({
     ...(query.search && {
         OR: [
             { title: { contains: query.search } },
+            { titleEn: { contains: query.search } },
             { description: { contains: query.search } },
+            { descriptionEn: { contains: query.search } },
         ],
     }),
 });

@@ -20,6 +20,10 @@ export const categoryService = {
         if (existingName){
             throw new ConflictError(`Category name "${input.name}" already exists`)
         }
+        const existingNameEn = await categoryRepository.findByNameEn(input.nameEn);
+        if (existingNameEn) {
+            throw new ConflictError(`Category name "${input.nameEn}" already exists`);
+        }
 
         const data = { ...input };
 
@@ -45,6 +49,13 @@ export const categoryService = {
             const existingName = await categoryRepository.findByName(input.name);
             if (existingName && existingName.id !== id) {
                 throw new ConflictError(`Category name "${input.name}" already exists`);
+            }
+        }
+
+        if (input?.nameEn && input.nameEn !== category.nameEn) {
+            const existingNameEn = await categoryRepository.findByNameEn(input.nameEn);
+            if (existingNameEn && existingNameEn.id !== id) {
+                throw new ConflictError(`Category name "${input.nameEn}" already exists`);
             }
         }
 

@@ -1,7 +1,10 @@
 model Event {
   id               String      @id @default(uuid()) @db.VarChar(36)
-  title            String
-  description      String
+  /// Lao; titleEn and descriptionEn are the English twins.
+  title            String      @db.VarChar(255)
+  titleEn          String      @db.VarChar(255)
+  description      String      @db.Text
+  descriptionEn    String      @db.Text
   coverImgUrl      String?
   coverImgPublicId String?
   startAt          DateTime

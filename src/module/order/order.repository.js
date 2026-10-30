@@ -15,6 +15,7 @@ const include = {
         select: {
             id: true,
             title: true,
+            titleEn: true,
             eventStatus: true,
             startAt: true,
             endAt: true,
@@ -27,6 +28,7 @@ const include = {
                 select: {
                     id: true,
                     name: true,
+                    nameEn: true,
                     price: true,
                     status: true,
                     eventId: true,

@@ -2,7 +2,9 @@ import { prisma } from "../../config/prisma.config.js";
 import { paginateArgs } from "../../utils/pagination.js";
 
 const buildWhere = (query) => ({
-    ...(query.search && { name: { contains: query.search } }),
+    ...(query.search && {
+        OR: [{ name: { contains: query.search } }, { nameEn: { contains: query.search } }],
+    }),
 });
 
 export const categoryRepository = {
@@ -11,6 +13,7 @@ export const categoryRepository = {
     delete: (id) => { return prisma.category.delete({ where: { id } }) },
     findById: (id) => { return prisma.category.findUnique({ where: { id } }) },
     findByName: (name) => { return prisma.category.findFirst({ where: { name } }) },
+    findByNameEn: (nameEn) => { return prisma.category.findFirst({ where: { nameEn } }) },
 
     findMany: async (query) => {
         const where = buildWhere(query);
